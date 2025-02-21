@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Create Project - Savage Scheduler</title>
+    <style>
+        :root {
+            /* Primary Colors - Based on logo */
+            --primary-blue: #0052CC;     /* Main blue color */
+            --primary-dark: #003D99;     /* Darker blue for hover states */
+            --primary-light: #E6F0FF;    /* Light blue for backgrounds */
+            
+            /* Neutral Colors */
+            --white: #FFFFFF;            /* Pure white */
+            --off-white: #F8F9FA;        /* Background color */
+            --light-gray: #E9ECEF;       /* Border colors */
+            --medium-gray: #6C757D;      /* Secondary text */
+            --dark-gray: #343A40;        /* Primary text */
+            
+            /* Feedback Colors */
+            --success: #28A745;          /* Success messages */
+            --error: #DC3545;            /* Error messages */
+        }
+
+        body {
+            background-color: var(--off-white);
+            color: var(--dark-gray);
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .logo {
+            margin-bottom: 30px;
+        }
+
+        .logo img {
+            height: 100px;
+            width: auto;
+        }
+
+        .form-container {
+            width: 80%;
+            max-width: 800px;
+            background-color: var(--white);
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            color: var(--dark-gray);
+            font-weight: bold;
+        }
+
+        input[type="text"],
+        input[type="tel"],
+        input[type="email"],
+        input[type="number"],
+        input[type="date"],
+        textarea {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid var(--light-gray);
+            border-radius: 4px;
+            box-sizing: border-box;
+            background-color: var(--white);
+        }
+
+        input:focus,
+        textarea:focus {
+            outline: none;
+            border-color: var(--primary-blue);
+            box-shadow: 0 0 0 2px var(--primary-light);
+        }
+
+        .checkbox-group {
+            margin-top: 10px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            background-color: var(--white);
+            padding: 10px;
+            border-radius: 4px;
+        }
+
+        .checkbox-option {
+            display: flex;
+            align-items: center;
+            margin-right: 20px;
+            color: var(--dark-gray);
+        }
+
+        .checkbox-option input[type="checkbox"] {
+            margin-right: 5px;
+        }
+
+        .other-input {
+            margin-top: 5px;
+            display: none;
+            width: 200px;
+            padding: 5px;
+            border: 1px solid var(--light-gray);
+            border-radius: 4px;
+        }
+
+        button {
+            background-color: var(--primary-blue);
+            color: var(--white);
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            width: 100%;
+            margin-top: 20px;
+        }
+
+        button:hover {
+            background-color: var(--primary-dark);
+        }
+
+        .error-message {
+            color: var(--error);
+            margin-top: 10px;
+            text-align: center;
+        }
+
+        /* High contrast adjustments for outdoor visibility */
+        @media (max-width: 768px) {
+            body {
+                padding: 10px;
+            }
+
+            .form-container {
+                width: 95%;
+                padding: 15px;
+            }
+
+            .checkbox-group {
+                flex-direction: column;
+                gap: 5px;
+            }
+
+            .checkbox-option {
+                margin-right: 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="logo">
+        <img src="/static/images/savage_logo.png" alt="Savage Scheduler Logo">
+    </div>
+    <div class="form-container">
+        <form action="/create-project/{{ region }}" method="POST">
+            <div class="form-group">
+                <label>Date:</label>
+                <input type="date" name="date" required>
+            </div>
+
+            <div class="form-group">
+                <label>PO:</label>
+                <input type="text" name="po" required>
+            </div>
+
+            <div class="form-group">
+                <label>Customer Name:</label>
+                <input type="text" name="customer_name" required>
+            </div>
+
+            <div class="form-group">
+                <label>Customer Phone:</label>
+                <input type="tel" name="customer_phone" required>
+            </div>
+
+            <div class="form-group">
+                <label>Customer Email (Optional):</label>
+                <input type="email" name="customer_email">
+            </div>
+
+            <div class="form-group">
+                <label>Address:</label>
+                <input type="text" name="address" required>
+            </div>
+
+            <div class="form-group">
+                <label>City:</label>
+                <input type="text" name="city" required>
+            </div>
+
+            <div class="form-group">
+                <label>Subdivision Name:</label>
+                <input type="text" name="subdivision">
+            </div>
+
+            <div class="form-group">
+                <label>Lot Number:</label>
+                <input type="text" name="lot_number">
+            </div>
+
+            <div class="form-group">
+                <label>Square Footage:</label>
+                <input type="number" name="square_footage" required>
+            </div>
+
+            <div class="form-group">
+                <label>Job Cost Type (Select all that apply):</label>
+                <div class="checkbox-group">
+                    <label class="checkbox-option"><input type="checkbox" name="job_cost_type" value="standard"> Standard</label>
+                    <label class="checkbox-option"><input type="checkbox" name="job_cost_type" value="time_and_material"> Time and Material</label>
+                    <label class="checkbox-option"><input type="checkbox" name="job_cost_type" value="conveyer_rental"> Conveyer Truck Rental</label>
+                    <label class="checkbox-option"><input type="checkbox" name="job_cost_type" value="conveyer_rental_labor"> Conveyer Truck Rental and Labor</label>
+                    <label class="checkbox-option"><input type="checkbox" name="job_cost_type" value="conveyer_rental_multiple"> Conveyer Truck Rental and Multiple Laborers</label>
+                    <label class="checkbox-option"><input type="checkbox" name="job_cost_type" value="landscape"> Landscape</label>
+                    <label class="checkbox-option"><input type="checkbox" name="job_cost_type" value="dumptruck_rental"> Dumptruck Rental</label>
+                    <label class="checkbox-option">
+                        <input type="checkbox" name="job_cost_type" value="other" onchange="toggleOther('job_cost_other')"> Other
+                        <input type="text" name="job_cost_type_other" id="job_cost_other" class="other-input">
+                    </label>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>Work Type (Select all that apply):</label>
+                <div class="checkbox-group">
+                    <label class="checkbox-option"><input type="checkbox" name="work_type" value="basement"> Basement</label>
+                    <label class="checkbox-option"><input type="checkbox" name="work_type" value="garage"> Garage</label>
+                    <label class="checkbox-option"><input type="checkbox" name="work_type" value="slab_on"> Slab On</label>
+                    <label class="checkbox-option"><input type="checkbox" name="work_type" value="under_footing"> Under Footing Fill</label>
+                    <label class="checkbox-option"><input type="checkbox" name="work_type" value="plumber_spray"> Plumber Spray</label>
+                    <label class="checkbox-option"><input type="checkbox" name="work_type" value="footings"> Footings</label>
+                    <label class="checkbox-option"><input type="checkbox" name="work_type" value="crawl_space"> Crawl Space</label>
+                    <label class="checkbox-option"><input type="checkbox" name="work_type" value="heavy_blanket"> Heavy Blanket Removal/Replace $250</label>
+                    <label class="checkbox-option"><input type="checkbox" name="work_type" value="dry_blanket"> Dry Blanket Removal</label>
+                    <label class="checkbox-option"><input type="checkbox" name="work_type" value="exterior_gravel"> Exterior Gravel Dump</label>
+                    <label class="checkbox-option"><input type="checkbox" name="work_type" value="track_out"> Track Out Pad</label>
+                    <label class="checkbox-option">
+                        <input type="checkbox" name="work_type" value="other" onchange="toggleOther('work_type_other')"> Other
+                        <input type="text" name="work_type_other" id="work_type_other" class="other-input">
+                    </label>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>Additional Notes:</label>
+                <textarea name="notes" rows="4"></textarea>
+            </div>
+
+            <button type="submit">Create Project</button>
+        </form>
+    </div>
+
+    <script>
+        function toggleOther(id) {
+            const otherInput = document.getElementById(id);
+            const checkbox = otherInput.previousElementSibling;
+            otherInput.style.display = checkbox.checked ? 'block' : 'none';
+        }
+    </script>
+</body>
+</html>

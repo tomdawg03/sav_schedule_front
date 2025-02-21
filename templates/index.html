@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Welcome - Savage Scheduler</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            font-family: Arial, sans-serif;
+        }
+
+        .logo-container {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .logo-container img {
+            height: 200px;  /* Much larger logo */
+            width: auto;
+            margin-bottom: 20px;
+        }
+
+        .buttons-container {
+            display: flex;
+            gap: 40px;  /* Space between buttons */
+        }
+
+        .auth-button {
+            padding: 12px 40px;
+            font-size: 18px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            text-decoration: none;
+            transition: opacity 0.2s;
+        }
+
+        .login-btn {
+            background-color: #333;
+            color: white;
+        }
+
+        .signup-btn {
+            background-color: #333;
+            color: white;
+        }
+
+        .auth-button:hover {
+            opacity: 0.8;
+        }
+    </style>
+</head>
+<body>
+    <div class="logo-container">
+        <img src="/static/images/savage_logo.png" alt="Savage Scheduler Logo">
+    </div>
+    
+    <div class="buttons-container">
+        <a href="/login" class="auth-button login-btn">Login</a>
+        <a href="/signup" class="auth-button signup-btn">Sign Up</a>
+    </div>
+</body>
+</html>

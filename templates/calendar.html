@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Calendar - {{ region|title }} Region</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.js"></script>
+    <style>
+        :root {
+            /* Primary Colors - Based on logo */
+            --primary-blue: #0052CC;
+            --primary-dark: #003D99;
+            --primary-light: #E6F0FF;
+            
+            /* Neutral Colors */
+            --white: #FFFFFF;
+            --off-white: #F8F9FA;
+            --light-gray: #E9ECEF;
+            --medium-gray: #6C757D;
+            --dark-gray: #343A40;
+        }
+
+        body {
+            background-color: var(--off-white);
+            color: var(--dark-gray);
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            min-height: 100vh;
+        }
+
+        .logo {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .logo img {
+            height: 100px;
+            width: auto;
+        }
+
+        .calendar-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background-color: var(--white);
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .region-title {
+            color: var(--primary-blue);
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .back-button {
+            display: inline-block;
+            padding: 8px 16px;
+            background-color: var(--medium-gray);
+            color: var(--white);
+            text-decoration: none;
+            border-radius: 4px;
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            font-size: 14px;
+        }
+
+        .back-button:hover {
+            background-color: var(--dark-gray);
+        }
+
+        #calendar {
+            background-color: var(--white);
+            padding: 20px;
+            border-radius: 4px;
+        }
+
+        /* FullCalendar customizations */
+        .fc {
+            max-width: 1100px;
+            margin: 0 auto;
+        }
+
+        .fc-button-primary {
+            background-color: var(--primary-blue) !important;
+            border-color: var(--primary-blue) !important;
+        }
+
+        .fc-button-primary:hover {
+            background-color: var(--primary-dark) !important;
+            border-color: var(--primary-dark) !important;
+        }
+
+        .fc-daygrid-day {
+            min-height: 100px !important;
+        }
+
+        .fc-event {
+            background-color: var(--primary-blue);
+            border-color: var(--primary-dark);
+            cursor: pointer;
+        }
+
+        /* High contrast for outdoor visibility */
+        @media (max-width: 768px) {
+            body {
+                padding: 10px;
+            }
+
+            .calendar-container {
+                padding: 10px;
+            }
+
+            #calendar {
+                padding: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <a href="/dashboard" class="back-button">Back to Dashboard</a>
+    
+    <div class="logo">
+        <img src="/static/images/savage_logo.png" alt="Savage Scheduler Logo">
+    </div>
+
+    <div class="calendar-container">
+        <h1 class="region-title">{{ region|title }} Region Calendar</h1>
+        <div id="calendar"></div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            var calendarEl = document.getElementById('calendar');
+            var calendar = new FullCalendar.Calendar(calendarEl, {
+                initialView: 'dayGridMonth',
+                headerToolbar: {
+                    left: 'prev,next today',
+                    center: 'title',
+                    right: 'dayGridMonth,timeGridWeek,timeGridDay'
+                },
+                height: 'auto',
+                selectable: true,
+                editable: false,
+                events: function(fetchInfo, successCallback, failureCallback) {
+                    // Make sure we're using the full URL
+                    fetch(`http://localhost:5001/projects/{{ region }}`)
+                        .then(response => {
+                            console.log('Response status:', response.status);
+                            return response.json();
+                        })
+                        .then(data => {
+                            console.log('Received data:', data);
+                            const events = data.map(project => ({
+                                title: project.customer_name,
+                                start: project.date, // Make sure this matches your date format
+                                allDay: true,
+                                extendedProps: {
+                                    ...project
+                                }
+                            }));
+                            console.log('Mapped events:', events);
+                            successCallback(events);
+                        })
+                        .catch(error => {
+                            console.error('Error fetching events:', error);
+                            failureCallback(error);
+                        });
+                },
+                eventClick: function(info) {
+                    const project = info.event.extendedProps;
+                    const details = `
+                        <div style="padding: 20px;">
+                            <h2>${project.customer_name}</h2>
+                            <p><strong>Date:</strong> ${project.date}</p>
+                            <p><strong>PO:</strong> ${project.po}</p>
+                            <p><strong>Phone:</strong> ${project.customer_phone}</p>
+                            <p><strong>Email:</strong> ${project.customer_email || 'N/A'}</p>
+                            <p><strong>Address:</strong> ${project.address}</p>
+                            <p><strong>City:</strong> ${project.city}</p>
+                            <p><strong>Subdivision:</strong> ${project.subdivision || 'N/A'}</p>
+                            <p><strong>Lot Number:</strong> ${project.lot_number || 'N/A'}</p>
+                            <p><strong>Square Footage:</strong> ${project.square_footage}</p>
+                            <p><strong>Job Cost Type:</strong> ${project.job_cost_type.join(', ')}</p>
+                            <p><strong>Work Type:</strong> ${project.work_type.join(', ')}</p>
+                            <p><strong>Notes:</strong> ${project.notes || 'N/A'}</p>
+                        </div>
+                    `;
+                    
+                    const modal = document.createElement('div');
+                    modal.style.position = 'fixed';
+                    modal.style.top = '50%';
+                    modal.style.left = '50%';
+                    modal.style.transform = 'translate(-50%, -50%)';
+                    modal.style.backgroundColor = 'white';
+                    modal.style.padding = '20px';
+                    modal.style.borderRadius = '8px';
+                    modal.style.boxShadow = '0 2px 10px rgba(0,0,0,0.1)';
+                    modal.style.maxWidth = '500px';
+                    modal.style.width = '90%';
+                    modal.style.maxHeight = '90vh';
+                    modal.style.overflow = 'auto';
+                    modal.style.zIndex = '1000';
+                    
+                    const overlay = document.createElement('div');
+                    overlay.style.position = 'fixed';
+                    overlay.style.top = '0';
+                    overlay.style.left = '0';
+                    overlay.style.right = '0';
+                    overlay.style.bottom = '0';
+                    overlay.style.backgroundColor = 'rgba(0,0,0,0.5)';
+                    overlay.style.zIndex = '999';
+                    
+                    modal.innerHTML = details;
+                    document.body.appendChild(overlay);
+                    document.body.appendChild(modal);
+                    
+                    overlay.addEventListener('click', function() {
+                        document.body.removeChild(modal);
+                        document.body.removeChild(overlay);
+                    });
+                }
+            });
+            calendar.render();
+        });
+    </script>
+</body>
+</html>
