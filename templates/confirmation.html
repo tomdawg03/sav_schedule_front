@@ -126,6 +126,21 @@
             background-color: #1e7e34;  /* Darker shade of success color */
         }
 
+        .edit-button {
+            background-color: var(--primary-blue);
+            color: var(--white);
+            padding: 12px 24px;
+            text-decoration: none;
+            border-radius: 4px;
+            text-align: center;
+            transition: background-color 0.2s;
+            font-weight: bold;
+        }
+
+        .edit-button:hover {
+            background-color: var(--primary-dark);
+        }
+
         /* High contrast adjustments for outdoor visibility */
         @media (max-width: 768px) {
             body {
@@ -247,6 +262,7 @@
         <div class="button-container">
             <a href="/dashboard" class="back-button">Back to Dashboard</a>
             <a href="/calendar/{{ project.region }}" class="calendar-button">View Calendar</a>
+            <a href="/edit-project/{{ project.region }}/{{ project.id }}" class="button edit-button">Edit Project</a>
         </div>
     </div>
 </body>

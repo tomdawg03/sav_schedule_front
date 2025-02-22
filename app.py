@@ -7,6 +7,33 @@ app.secret_key = 'your_secret_key'  # Replace with a real secret key
 
 BACKEND_URL = 'http://localhost:5001'  # Make sure this matches your backend port
 
+# Define these at the top of your file
+JOB_COST_TYPES = [
+    'standard',
+    'time_and_material',
+    'conveyer_rental',
+    'conveyer_rental_labor',
+    'conveyer_rental_multiple',
+    'landscape',
+    'dumptruck_rental',
+    'other'
+]
+
+WORK_TYPES = [
+    'basement',
+    'garage',
+    'slab_on',
+    'under_footing',
+    'plumber_spray',
+    'footings',
+    'crawl_space',
+    'heavy_blanket',
+    'dry_blanket',
+    'exterior_gravel',
+    'track_out',
+    'other'
+]
+
 @app.route('/')
 def index():
     return render_template('index.html')
@@ -136,8 +163,9 @@ def create_project(region):
             )
             
             if response.status_code == 200:
-                print(f"Project successfully saved for {region}")
-                return render_template('confirmation.html', project=project)
+                # Get the created project with ID from the response
+                created_project = response.json().get('project')
+                return render_template('confirmation.html', project=created_project)
             else:
                 print(f"Error saving project: {response.text}")
                 return "Error saving project", 500
@@ -170,6 +198,83 @@ def calendar(region):
         print(f"Exception while fetching projects: {str(e)}")  # Debug print
     
     return render_template('calendar.html', region=region)
+
+@app.route('/day-view/<region>/<date>')
+def day_view(region, date):
+    if 'user' not in session:
+        return redirect(url_for('login'))
+    
+    # Fetch projects for this region and date from backend
+    response = requests.get(f'{BACKEND_URL}/projects/{region}')
+    if response.status_code == 200:
+        all_projects = response.json()
+        # Filter projects for this date
+        projects = [p for p in all_projects if p['date'] == date]
+    else:
+        projects = []
+    
+    return render_template('day_view.html', 
+                         region=region, 
+                         date=date, 
+                         projects=projects)
+
+@app.route('/edit-project/<region>/<project_id>', methods=['GET', 'POST'])
+def edit_project(region, project_id):
+    if 'user' not in session:
+        return redirect(url_for('login'))
+
+    try:
+        # Get project data from backend
+        response = requests.get(f'{BACKEND_URL}/projects/{region}/{project_id}')
+        if response.status_code != 200:
+            print(f"Error fetching project: {response.text}")
+            return "Project not found", 404
+
+        project = response.json()
+
+        if request.method == 'POST':
+            # Update project data
+            updated_project = {
+                'id': project_id,
+                'date': request.form.get('date'),
+                'po': request.form.get('po'),
+                'customer_name': request.form.get('customer_name'),
+                'customer_phone': request.form.get('customer_phone'),
+                'customer_email': request.form.get('customer_email'),
+                'address': request.form.get('address'),
+                'city': request.form.get('city'),
+                'subdivision': request.form.get('subdivision'),
+                'lot_number': request.form.get('lot_number'),
+                'square_footage': request.form.get('square_footage'),
+                'job_cost_type': request.form.getlist('job_cost_type'),
+                'work_type': request.form.getlist('work_type'),
+                'notes': request.form.get('notes'),
+                'region': region
+            }
+
+            # Send updated data to backend
+            response = requests.put(
+                f'{BACKEND_URL}/projects/{region}/{project_id}',
+                json=updated_project
+            )
+
+            if response.status_code == 200:
+                # Redirect to confirmation page instead of day view
+                return render_template('edit_confirmation.html',
+                                    project=updated_project,
+                                    region=region)
+            else:
+                return "Error updating project", 500
+
+        # For GET request, show edit form
+        return render_template('edit_project.html',
+                             project=project,
+                             region=region,
+                             job_cost_types=JOB_COST_TYPES,
+                             work_types=WORK_TYPES)
+    except Exception as e:
+        print(f"Exception in edit_project: {str(e)}")
+        return f"Error: {str(e)}", 500
 
 if __name__ == '__main__':
     app.run(port=5000, debug=True)

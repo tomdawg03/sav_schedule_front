@@ -116,6 +116,88 @@
                 padding: 10px;
             }
         }
+
+        /* Add styles for the day popup */
+        .day-popup {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            z-index: 1000;
+            max-width: 500px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+
+        .day-popup h2 {
+            color: var(--primary-blue);
+            margin-bottom: 20px;
+            border-bottom: 1px solid var(--light-gray);
+            padding-bottom: 10px;
+        }
+
+        .project-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .project-item {
+            padding: 10px;
+            margin-bottom: 10px;
+            border: 1px solid var(--light-gray);
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        .project-item:hover {
+            background-color: var(--primary-light);
+        }
+
+        .overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.5);
+            z-index: 999;
+        }
+
+        /* Add these new styles for day hover effects */
+        .fc-day {
+            transition: background-color 0.2s ease;
+        }
+
+        .fc-day:hover {
+            background-color: var(--primary-light) !important;
+            cursor: pointer;
+        }
+
+        /* Style for days with events */
+        .fc-daygrid-day.fc-day-has-event {
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .fc-daygrid-day.fc-day-has-event:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        /* Style for today's date */
+        .fc-day-today {
+            background-color: var(--primary-light) !important;
+        }
+
+        .fc-day-today:hover {
+            background-color: #d9e8ff !important;
+        }
     </style>
 </head>
 <body>
@@ -144,23 +226,17 @@
                 selectable: true,
                 editable: false,
                 events: function(fetchInfo, successCallback, failureCallback) {
-                    // Make sure we're using the full URL
                     fetch(`http://localhost:5001/projects/{{ region }}`)
-                        .then(response => {
-                            console.log('Response status:', response.status);
-                            return response.json();
-                        })
+                        .then(response => response.json())
                         .then(data => {
-                            console.log('Received data:', data);
                             const events = data.map(project => ({
                                 title: project.customer_name,
-                                start: project.date, // Make sure this matches your date format
+                                start: project.date,
                                 allDay: true,
                                 extendedProps: {
                                     ...project
                                 }
                             }));
-                            console.log('Mapped events:', events);
                             successCallback(events);
                         })
                         .catch(error => {
@@ -168,62 +244,47 @@
                             failureCallback(error);
                         });
                 },
-                eventClick: function(info) {
-                    const project = info.event.extendedProps;
-                    const details = `
-                        <div style="padding: 20px;">
-                            <h2>${project.customer_name}</h2>
-                            <p><strong>Date:</strong> ${project.date}</p>
-                            <p><strong>PO:</strong> ${project.po}</p>
-                            <p><strong>Phone:</strong> ${project.customer_phone}</p>
-                            <p><strong>Email:</strong> ${project.customer_email || 'N/A'}</p>
-                            <p><strong>Address:</strong> ${project.address}</p>
-                            <p><strong>City:</strong> ${project.city}</p>
-                            <p><strong>Subdivision:</strong> ${project.subdivision || 'N/A'}</p>
-                            <p><strong>Lot Number:</strong> ${project.lot_number || 'N/A'}</p>
-                            <p><strong>Square Footage:</strong> ${project.square_footage}</p>
-                            <p><strong>Job Cost Type:</strong> ${project.job_cost_type.join(', ')}</p>
-                            <p><strong>Work Type:</strong> ${project.work_type.join(', ')}</p>
-                            <p><strong>Notes:</strong> ${project.notes || 'N/A'}</p>
-                        </div>
-                    `;
-                    
-                    const modal = document.createElement('div');
-                    modal.style.position = 'fixed';
-                    modal.style.top = '50%';
-                    modal.style.left = '50%';
-                    modal.style.transform = 'translate(-50%, -50%)';
-                    modal.style.backgroundColor = 'white';
-                    modal.style.padding = '20px';
-                    modal.style.borderRadius = '8px';
-                    modal.style.boxShadow = '0 2px 10px rgba(0,0,0,0.1)';
-                    modal.style.maxWidth = '500px';
-                    modal.style.width = '90%';
-                    modal.style.maxHeight = '90vh';
-                    modal.style.overflow = 'auto';
-                    modal.style.zIndex = '1000';
-                    
-                    const overlay = document.createElement('div');
-                    overlay.style.position = 'fixed';
-                    overlay.style.top = '0';
-                    overlay.style.left = '0';
-                    overlay.style.right = '0';
-                    overlay.style.bottom = '0';
-                    overlay.style.backgroundColor = 'rgba(0,0,0,0.5)';
-                    overlay.style.zIndex = '999';
-                    
-                    modal.innerHTML = details;
-                    document.body.appendChild(overlay);
-                    document.body.appendChild(modal);
-                    
-                    overlay.addEventListener('click', function() {
-                        document.body.removeChild(modal);
-                        document.body.removeChild(overlay);
-                    });
+                dateClick: function(info) {
+                    window.location.href = `/day-view/{{ region }}/${info.dateStr}`;
                 }
             });
             calendar.render();
         });
+
+        function showProjectDetails(project) {
+            const details = `
+                <div style="padding: 20px;">
+                    <h2>${project.customer_name}</h2>
+                    <p><strong>Date:</strong> ${project.date}</p>
+                    <p><strong>PO:</strong> ${project.po}</p>
+                    <p><strong>Phone:</strong> ${project.customer_phone}</p>
+                    <p><strong>Email:</strong> ${project.customer_email || 'N/A'}</p>
+                    <p><strong>Address:</strong> ${project.address}</p>
+                    <p><strong>City:</strong> ${project.city}</p>
+                    <p><strong>Subdivision:</strong> ${project.subdivision || 'N/A'}</p>
+                    <p><strong>Lot Number:</strong> ${project.lot_number || 'N/A'}</p>
+                    <p><strong>Square Footage:</strong> ${project.square_footage}</p>
+                    <p><strong>Job Cost Type:</strong> ${project.job_cost_type.join(', ')}</p>
+                    <p><strong>Work Type:</strong> ${project.work_type.join(', ')}</p>
+                    <p><strong>Notes:</strong> ${project.notes || 'N/A'}</p>
+                </div>
+            `;
+            
+            const modal = document.createElement('div');
+            modal.className = 'day-popup';
+            modal.innerHTML = details;
+            
+            const overlay = document.createElement('div');
+            overlay.className = 'overlay';
+            
+            document.body.appendChild(overlay);
+            document.body.appendChild(modal);
+            
+            overlay.onclick = function() {
+                document.body.removeChild(modal);
+                document.body.removeChild(overlay);
+            };
+        }
     </script>
 </body>
 </html>
