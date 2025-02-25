@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, url_for, session
+from flask import Flask, render_template, request, redirect, url_for, session, jsonify
 import requests
 import json
 
@@ -60,22 +60,31 @@ def login():
 @app.route('/signup', methods=['GET', 'POST'])
 def signup():
     if request.method == 'POST':
-        username = request.form.get('username')
-        password = request.form.get('password')
-        confirm_password = request.form.get('confirm_password')
-        
-        if password != confirm_password:
-            return render_template('signup.html', error='Passwords do not match')
-        
-        response = requests.post(f'{BACKEND_URL}/signup', json={
-            'username': username,
-            'password': password
-        })
-        
-        if response.status_code == 200:
-            return redirect(url_for('login'))
-        else:
-            return render_template('signup.html', error='Username already exists')
+        try:
+            # Get JSON data instead of form data
+            data = request.get_json()
+            print(f"Sending signup request with data: {data}")  # Debug log
+            
+            # Send request to backend
+            response = requests.post(
+                f'{BACKEND_URL}/signup',
+                json={
+                    'username': data['username'],
+                    'password': data['password']
+                }
+            )
+            
+            print(f"Backend response status: {response.status_code}")  # Debug log
+            print(f"Backend response: {response.text}")  # Debug log
+            
+            if response.ok:
+                return jsonify({'success': True, 'redirect': url_for('login')})
+            else:
+                return jsonify({'error': response.json().get('error', 'An error occurred')}), response.status_code
+                
+        except Exception as e:
+            print(f"Signup error: {str(e)}")  # Debug log
+            return jsonify({'error': "An error occurred. Please try again."}), 500
     
     return render_template('signup.html')
 

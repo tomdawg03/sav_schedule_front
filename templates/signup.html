@@ -91,9 +91,15 @@
         }
 
         .error-message {
-            color: var(--error);
-            margin-top: 10px;
-            text-align: center;
+            color: red;
+            margin-top: 5px;
+            font-size: 14px;
+        }
+
+        .password-requirements {
+            font-size: 12px;
+            color: #666;
+            margin-top: 5px;
         }
 
         /* High contrast adjustments for outdoor visibility */
@@ -114,20 +120,96 @@
     </style>
 </head>
 <body>
-    <div class="logo">
-        <img src="/static/images/savage_logo.png" alt="Savage Scheduler Logo">
+    <div class="container">
+        <div class="logo">
+            <img src="/static/images/savage_logo.png" alt="Savage Scheduler Logo">
+        </div>
+        
+        <div class="form-container">
+            <h2>Sign Up</h2>
+            <form id="signupForm" onsubmit="return validateForm(event)">
+                <div class="form-group">
+                    <label for="username">Username:</label>
+                    <input type="text" id="username" name="username" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="password">Password:</label>
+                    <input type="password" id="password" name="password" required>
+                    <div class="password-requirements">
+                        Password must be at least 6 characters long and contain at least one number
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="confirmPassword">Confirm Password:</label>
+                    <input type="password" id="confirmPassword" name="confirmPassword" required>
+                    <div id="passwordError" class="error-message"></div>
+                </div>
+                
+                <button type="submit">Sign Up</button>
+            </form>
+            <p>Already have an account? <a href="/login">Login here</a></p>
+        </div>
     </div>
-    <div class="signup-container">
-        <h2>Sign Up</h2>
-        <form action="/signup" method="POST">
-            <input type="text" name="username" placeholder="Username" required>
-            <input type="password" name="password" placeholder="Password" required>
-            <input type="password" name="confirm_password" placeholder="Confirm Password" required>
-            <button type="submit">Sign Up</button>
-        </form>
-        {% if error %}
-        <p class="error-message">{{ error }}</p>
-        {% endif %}
-    </div>
+
+    <script>
+        function validateForm(event) {
+            event.preventDefault();
+            
+            const password = document.getElementById('password').value;
+            const confirmPassword = document.getElementById('confirmPassword').value;
+            const passwordError = document.getElementById('passwordError');
+            
+            // Clear previous error
+            passwordError.textContent = '';
+            
+            // Validate password length
+            if (password.length < 6) {
+                passwordError.textContent = 'Password must be at least 6 characters long';
+                return false;
+            }
+            
+            // Validate password contains number
+            if (!/\d/.test(password)) {
+                passwordError.textContent = 'Password must contain at least one number';
+                return false;
+            }
+
+            // Check if passwords match
+            if (password !== confirmPassword) {
+                passwordError.textContent = 'Passwords do not match';
+                return false;
+            }
+            
+            // If validation passes, submit the form
+            const username = document.getElementById('username').value;
+            
+            fetch('/signup', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    username: username,
+                    password: password
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    passwordError.textContent = data.error;
+                } else {
+                    window.location.href = '/login';
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                passwordError.textContent = 'An error occurred. Please try again.';
+            });
+            
+            return false;
+        }
+    </script>
 </body>
 </html>
