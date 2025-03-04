@@ -44,16 +44,29 @@ def login():
         username = request.form.get('username')
         password = request.form.get('password')
         
-        response = requests.post(f'{BACKEND_URL}/login', json={
-            'username': username,
-            'password': password
-        })
-        
-        if response.status_code == 200:
-            session['user'] = response.json()
-            return redirect(url_for('dashboard'))
-        else:
-            return render_template('login.html', error='Invalid username or password')
+        try:
+            response = requests.post(f'{BACKEND_URL}/login', json={
+                'username': username,
+                'password': password
+            })
+            
+            if response.status_code == 200:
+                data = response.json()
+                session['user'] = {
+                    'id': data['user']['id'],
+                    'username': data['user']['username'],
+                    'email': data['user']['email']
+                }
+                return redirect(url_for('dashboard'))
+            else:
+                error_message = response.json().get('error', 'Invalid username or password')
+                return render_template('login.html', error=error_message)
+                
+        except requests.exceptions.ConnectionError:
+            return render_template('login.html', error="Could not connect to the server")
+        except Exception as e:
+            print(f"Login error: {str(e)}")
+            return render_template('login.html', error="An unexpected error occurred")
     
     return render_template('login.html')
 
@@ -61,30 +74,35 @@ def login():
 def signup():
     if request.method == 'POST':
         try:
-            # Get JSON data instead of form data
             data = request.get_json()
-            print(f"Sending signup request with data: {data}")  # Debug log
+            username = data.get('username')
+            email = data.get('email')
+            password = data.get('password')
             
-            # Send request to backend
-            response = requests.post(
-                f'{BACKEND_URL}/signup',
-                json={
-                    'username': data['username'],
-                    'password': data['password']
-                }
-            )
+            print(f"Sending signup request with data: {{'username': '{username}', 'email': '{email}', 'password': '*****'}}")
             
-            print(f"Backend response status: {response.status_code}")  # Debug log
-            print(f"Backend response: {response.text}")  # Debug log
+            response = requests.post(f'{BACKEND_URL}/signup', json={
+                'username': username,
+                'email': email,
+                'password': password
+            })
             
-            if response.ok:
-                return jsonify({'success': True, 'redirect': url_for('login')})
+            print(f"Backend response status: {response.status_code}")
+            print(f"Backend response: {response.text}")
+            
+            if response.status_code == 201:
+                return jsonify({'success': True})
             else:
-                return jsonify({'error': response.json().get('error', 'An error occurred')}), response.status_code
+                error_message = response.json().get('error', 'An error occurred. Please try again.')
+                print(f"Error message: {error_message}")
+                return jsonify({'error': error_message}), response.status_code
                 
+        except requests.exceptions.ConnectionError:
+            print("Connection error to backend server")
+            return jsonify({'error': "Could not connect to the server. Please try again."}), 500
         except Exception as e:
-            print(f"Signup error: {str(e)}")  # Debug log
-            return jsonify({'error': "An error occurred. Please try again."}), 500
+            print(f"Error during signup: {str(e)}")
+            return jsonify({'error': f"An unexpected error occurred: {str(e)}"}), 500
     
     return render_template('signup.html')
 
@@ -92,7 +110,13 @@ def signup():
 def dashboard():
     if 'user' not in session:
         return redirect(url_for('login'))
-    return render_template('dashboard.html', username=session['user']['username'])
+    try:
+        return render_template('dashboard.html', 
+                             username=session['user']['username'],
+                             email=session['user']['email'])
+    except KeyError:
+        session.clear()
+        return redirect(url_for('login'))
 
 @app.route('/create-project/<region>', methods=['GET', 'POST'])
 def create_project(region):
@@ -100,7 +124,7 @@ def create_project(region):
         return redirect(url_for('login'))
     
     if request.method == 'POST':
-        # Work type mapping
+        # Work type mapping with properly formatted names
         work_type_mapping = {
             'basement': 'Basement',
             'garage': 'Garage',
@@ -115,7 +139,7 @@ def create_project(region):
             'track_out': 'Track Out Pad'
         }
 
-        # Job cost type mapping
+        # Job cost type mapping with properly formatted names
         job_cost_mapping = {
             'standard': 'Standard',
             'time_and_material': 'Time and Material',
@@ -131,20 +155,20 @@ def create_project(region):
         job_cost_types = request.form.getlist('job_cost_type')
 
         # Convert internal names to display names
-        display_work_types = [work_type_mapping.get(wt, wt) for wt in work_types]
-        display_job_cost_types = [job_cost_mapping.get(jct, jct) for jct in job_cost_types]
+        display_work_types = [work_type_mapping.get(wt, wt.replace('_', ' ').title()) for wt in work_types]
+        display_job_cost_types = [job_cost_mapping.get(jct, jct.replace('_', ' ').title()) for jct in job_cost_types]
 
         # Handle "other" options
         if 'other' in work_types:
             other_value = request.form.get('work_type_other')
             if other_value:
-                display_work_types.remove(work_type_mapping.get('other', 'other'))
+                display_work_types.remove('Other')
                 display_work_types.append(f"Other: {other_value}")
 
         if 'other' in job_cost_types:
             other_value = request.form.get('job_cost_type_other')
             if other_value:
-                display_job_cost_types.remove(job_cost_mapping.get('other', 'other'))
+                display_job_cost_types.remove('Other')
                 display_job_cost_types.append(f"Other: {other_value}")
 
         project = {
@@ -241,7 +265,41 @@ def edit_project(region, project_id):
 
         project = response.json()
 
+        # Work type mapping with properly formatted names
+        work_type_mapping = {
+            'basement': 'Basement',
+            'garage': 'Garage',
+            'slab_on': 'Slab On',
+            'under_footing': 'Under Footing Fill',
+            'plumber_spray': 'Plumber Spray',
+            'footings': 'Footings',
+            'crawl_space': 'Crawl Space',
+            'heavy_blanket': 'Heavy Blanket Removal/Replace $250',
+            'dry_blanket': 'Dry Blanket Removal',
+            'exterior_gravel': 'Exterior Gravel Dump',
+            'track_out': 'Track Out Pad'
+        }
+
+        # Job cost type mapping with properly formatted names
+        job_cost_mapping = {
+            'standard': 'Standard',
+            'time_and_material': 'Time and Material',
+            'conveyer_rental': 'Conveyer Truck Rental',
+            'conveyer_rental_labor': 'Conveyer Truck Rental and Labor',
+            'conveyer_rental_multiple': 'Conveyer Truck Rental and Multiple Laborers',
+            'landscape': 'Landscape',
+            'dumptruck_rental': 'Dumptruck Rental'
+        }
+
         if request.method == 'POST':
+            # Get form data
+            work_types = request.form.getlist('work_type')
+            job_cost_types = request.form.getlist('job_cost_type')
+
+            # Convert internal names to display names
+            display_work_types = [work_type_mapping.get(wt, wt.replace('_', ' ').title()) for wt in work_types]
+            display_job_cost_types = [job_cost_mapping.get(jct, jct.replace('_', ' ').title()) for jct in job_cost_types]
+
             # Update project data
             updated_project = {
                 'id': project_id,
@@ -255,8 +313,8 @@ def edit_project(region, project_id):
                 'subdivision': request.form.get('subdivision'),
                 'lot_number': request.form.get('lot_number'),
                 'square_footage': request.form.get('square_footage'),
-                'job_cost_type': request.form.getlist('job_cost_type'),
-                'work_type': request.form.getlist('work_type'),
+                'job_cost_type': display_job_cost_types,
+                'work_type': display_work_types,
                 'notes': request.form.get('notes'),
                 'region': region
             }
@@ -268,19 +326,21 @@ def edit_project(region, project_id):
             )
 
             if response.status_code == 200:
-                # Redirect to confirmation page instead of day view
                 return render_template('edit_confirmation.html',
                                     project=updated_project,
                                     region=region)
             else:
                 return "Error updating project", 500
 
-        # For GET request, show edit form
+        # For GET request, show edit form with formatted options
+        formatted_work_types = [{'value': k, 'label': v} for k, v in work_type_mapping.items()]
+        formatted_job_cost_types = [{'value': k, 'label': v} for k, v in job_cost_mapping.items()]
+        
         return render_template('edit_project.html',
                              project=project,
                              region=region,
-                             job_cost_types=JOB_COST_TYPES,
-                             work_types=WORK_TYPES)
+                             work_types=formatted_work_types,
+                             job_cost_types=formatted_job_cost_types)
     except Exception as e:
         print(f"Exception in edit_project: {str(e)}")
         return f"Error: {str(e)}", 500

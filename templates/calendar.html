@@ -245,10 +245,50 @@
                         });
                 },
                 dateClick: function(info) {
+                    // Add visual feedback
+                    const cell = info.dayEl;
+                    cell.style.backgroundColor = 'var(--primary-light)';
+                    
+                    // Prevent multiple clicks
+                    if (cell.getAttribute('data-processing')) {
+                        return;
+                    }
+                    
+                    // Set processing flag
+                    cell.setAttribute('data-processing', 'true');
+                    
+                    // Navigate to day view
                     window.location.href = `/day-view/{{ region }}/${info.dateStr}`;
+                },
+                eventClick: function(info) {
+                    // Prevent the date click from firing when clicking an event
+                    info.jsEvent.preventDefault();
+                    info.jsEvent.stopPropagation();
+                    window.location.href = `/day-view/{{ region }}/${info.event.startStr}`;
                 }
             });
+            
             calendar.render();
+
+            // Add click handling improvements
+            const fcDayGrid = document.querySelector('.fc-daygrid');
+            if (fcDayGrid) {
+                fcDayGrid.addEventListener('click', function(e) {
+                    // Find the closest date cell
+                    const dateCell = e.target.closest('.fc-daygrid-day');
+                    if (dateCell && !dateCell.getAttribute('data-processing')) {
+                        const date = dateCell.getAttribute('data-date');
+                        if (date) {
+                            // Add visual feedback
+                            dateCell.style.backgroundColor = 'var(--primary-light)';
+                            // Set processing flag
+                            dateCell.setAttribute('data-processing', 'true');
+                            // Navigate to day view
+                            window.location.href = `/day-view/{{ region }}/${date}`;
+                        }
+                    }
+                }, true);
+            }
         });
 
         function showProjectDetails(project) {

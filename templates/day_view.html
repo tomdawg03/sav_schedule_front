@@ -67,11 +67,18 @@
             border-radius: 4px;
             padding: 15px;
             margin-bottom: 15px;
-            cursor: pointer;
             transition: background-color 0.2s;
         }
 
-        .project-card:hover {
+        .project-card h3 {
+            margin: 0;
+            padding: 10px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            border-radius: 4px;
+        }
+
+        .project-card h3:hover {
             background-color: var(--primary-light);
         }
 
@@ -139,8 +146,8 @@
         <div class="projects-list">
             {% if projects %}
                 {% for project in projects %}
-                    <div class="project-card" onclick="toggleDetails('project-{{ loop.index }}')">
-                        <h3>{{ project.customer_name }}</h3>
+                    <div class="project-card">
+                        <h3 onclick="toggleDetails('project-{{ loop.index }}')">{{ project.customer_name }}</h3>
                         <div id="project-{{ loop.index }}" class="project-details">
                             <p><strong>PO:</strong> {{ project.po }}</p>
                             <p><strong>Phone:</strong> {{ project.customer_phone }}</p>
@@ -155,7 +162,7 @@
                             <p><strong>Notes:</strong> {{ project.notes or 'N/A' }}</p>
                             
                             <div class="button-container">
-                                <a href="/edit-project/{{ region }}/{{ project.id }}" class="edit-button">Edit Project</a>
+                                <a href="/edit-project/{{ region }}/{{ project.id }}" class="edit-button" onclick="window.location.href=this.href; return false;">Edit Project</a>
                             </div>
                         </div>
                     </div>
