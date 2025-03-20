@@ -36,6 +36,7 @@
 
         .logo {
             margin-bottom: 30px;
+            text-align: center;
         }
 
         .logo img {
@@ -56,6 +57,16 @@
             color: var(--primary-blue);
             margin-bottom: 20px;
             text-align: center;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            color: var(--dark-gray);
         }
 
         input {
@@ -92,8 +103,26 @@
 
         .error-message {
             color: var(--error);
-            margin-top: 10px;
+            margin: 10px 0;
             text-align: center;
+            padding: 10px;
+            background-color: #fff3f3;
+            border: 1px solid var(--error);
+            border-radius: 4px;
+        }
+
+        .signup-link {
+            text-align: center;
+            margin-top: 15px;
+        }
+
+        .signup-link a {
+            color: var(--primary-blue);
+            text-decoration: none;
+        }
+
+        .signup-link a:hover {
+            text-decoration: underline;
         }
 
         /* High contrast adjustments for outdoor visibility */
@@ -119,14 +148,23 @@
     </div>
     <div class="login-container">
         <h2>Login</h2>
+        {% if error %}
+        <div class="error-message">{{ error }}</div>
+        {% endif %}
         <form action="/login" method="POST">
-            <input type="text" name="username" placeholder="Username" required>
-            <input type="password" name="password" placeholder="Password" required>
+            <div class="form-group">
+                <label for="username">Username:</label>
+                <input type="text" id="username" name="username" required>
+            </div>
+            <div class="form-group">
+                <label for="password">Password:</label>
+                <input type="password" id="password" name="password" required>
+            </div>
             <button type="submit">Login</button>
         </form>
-        {% if error %}
-        <p class="error-message">{{ error }}</p>
-        {% endif %}
+        <div class="signup-link">
+            <p>Don't have an account? <a href="/signup">Sign up here</a></p>
+        </div>
     </div>
 </body>
 </html>

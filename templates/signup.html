@@ -103,9 +103,10 @@
         }
 
         .error-message {
-            color: red;
+            color: var(--error);
             margin-top: 5px;
             font-size: 14px;
+            text-align: center;
         }
 
         .password-requirements {
@@ -139,6 +140,9 @@
         
         <div class="form-container">
             <h2>Sign Up</h2>
+            {% if error %}
+            <div class="error-message">{{ error }}</div>
+            {% endif %}
             <form id="signupForm" onsubmit="return validateForm(event)">
                 <div class="form-group">
                     <label for="username">Username:</label>

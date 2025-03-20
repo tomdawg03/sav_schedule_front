@@ -5,7 +5,7 @@ import json
 app = Flask(__name__)
 app.secret_key = 'your_secret_key'  # Replace with a real secret key
 
-BACKEND_URL = 'http://localhost:5001'  # Make sure this matches your backend port
+BACKEND_URL = 'http://localhost:5001/api'  # Updated to include /api prefix
 
 # Define these at the top of your file
 JOB_COST_TYPES = [
@@ -45,24 +45,43 @@ def login():
         password = request.form.get('password')
         
         try:
-            response = requests.post(f'{BACKEND_URL}/login', json={
-                'username': username,
-                'password': password
-            })
+            print(f"Attempting login for user: {username}")
+            print(f"Request form data: {request.form}")
+            
+            # Send as form data instead of JSON
+            response = requests.post(
+                f'{BACKEND_URL}/login',
+                data={
+                    'username': username,
+                    'password': password
+                }
+            )
+            
+            print(f"Login response status: {response.status_code}")
+            print(f"Login response content: {response.text}")
             
             if response.status_code == 200:
-                data = response.json()
-                session['user'] = {
-                    'id': data['user']['id'],
-                    'username': data['user']['username'],
-                    'email': data['user']['email']
-                }
-                return redirect(url_for('dashboard'))
+                try:
+                    data = response.json()
+                    print(f"Login successful. User data: {data}")
+                    # Store complete user data in session
+                    session['user'] = data['user']
+                    print(f"Session data after login: {session['user']}")
+                    return redirect(url_for('dashboard'))
+                except Exception as e:
+                    print(f"Error parsing response JSON: {str(e)}")
+                    return render_template('login.html', error="Error processing server response")
             else:
-                error_message = response.json().get('error', 'Invalid username or password')
+                try:
+                    error_data = response.json()
+                    error_message = error_data.get('error', 'Invalid username or password')
+                except:
+                    error_message = 'Invalid username or password'
+                print(f"Login failed: {error_message}")
                 return render_template('login.html', error=error_message)
                 
         except requests.exceptions.ConnectionError:
+            print("Connection error to backend server")
             return render_template('login.html', error="Could not connect to the server")
         except Exception as e:
             print(f"Login error: {str(e)}")
@@ -74,12 +93,16 @@ def login():
 def signup():
     if request.method == 'POST':
         try:
-            data = request.get_json()
+            if request.is_json:
+                data = request.get_json()
+            else:
+                data = request.form
+
             username = data.get('username')
             email = data.get('email')
             password = data.get('password')
             
-            print(f"Sending signup request with data: {{'username': '{username}', 'email': '{email}', 'password': '*****'}}")
+            print(f"Sending signup request with data: {{'username': '{username}', 'email': '{email}'}}")
             
             response = requests.post(f'{BACKEND_URL}/signup', json={
                 'username': username,
@@ -88,33 +111,49 @@ def signup():
             })
             
             print(f"Backend response status: {response.status_code}")
-            print(f"Backend response: {response.text}")
             
             if response.status_code == 201:
-                return jsonify({'success': True})
+                if request.is_json:
+                    return jsonify({'success': True})
+                return redirect(url_for('login'))
             else:
-                error_message = response.json().get('error', 'An error occurred. Please try again.')
-                print(f"Error message: {error_message}")
-                return jsonify({'error': error_message}), response.status_code
+                error_message = response.json().get('error', 'An error occurred during signup')
+                if request.is_json:
+                    return jsonify({'error': error_message}), response.status_code
+                return render_template('signup.html', error=error_message)
                 
         except requests.exceptions.ConnectionError:
-            print("Connection error to backend server")
-            return jsonify({'error': "Could not connect to the server. Please try again."}), 500
+            error_message = "Could not connect to the server"
+            if request.is_json:
+                return jsonify({'error': error_message}), 500
+            return render_template('signup.html', error=error_message)
         except Exception as e:
-            print(f"Error during signup: {str(e)}")
-            return jsonify({'error': f"An unexpected error occurred: {str(e)}"}), 500
+            print(f"Signup error: {str(e)}")
+            error_message = f"An unexpected error occurred: {str(e)}"
+            if request.is_json:
+                return jsonify({'error': error_message}), 500
+            return render_template('signup.html', error=error_message)
     
     return render_template('signup.html')
 
 @app.route('/dashboard')
 def dashboard():
+    print(f"Session data in dashboard: {session}")
     if 'user' not in session:
+        print("No user in session, redirecting to login")
         return redirect(url_for('login'))
     try:
+        user_data = session['user']
+        print(f"Rendering dashboard with user data: {user_data}")
         return render_template('dashboard.html', 
-                             username=session['user']['username'],
-                             email=session['user']['email'])
-    except KeyError:
+                             username=user_data['username'],
+                             role=user_data['role'])
+    except KeyError as e:
+        print(f"KeyError in dashboard: {str(e)}")
+        session.clear()
+        return redirect(url_for('login'))
+    except Exception as e:
+        print(f"Error in dashboard: {str(e)}")
         session.clear()
         return redirect(url_for('login'))
 
@@ -122,6 +161,10 @@ def dashboard():
 def create_project(region):
     if 'user' not in session:
         return redirect(url_for('login'))
+    
+    # Check if user has proper permissions
+    if session['user'].get('role') not in ['admin', 'project_manager']:
+        return render_template('error.html', message="You don't have permission to create projects")
     
     if request.method == 'POST':
         # Work type mapping with properly formatted names
@@ -192,7 +235,10 @@ def create_project(region):
             response = requests.post(
                 f'{BACKEND_URL}/projects/{region}',
                 json=project,
-                headers={'Content-Type': 'application/json'}
+                headers={
+                    'Content-Type': 'application/json',
+                    'Authorization': f"Bearer {session['user'].get('token', '')}"
+                }
             )
             
             if response.status_code == 200:
@@ -344,6 +390,71 @@ def edit_project(region, project_id):
     except Exception as e:
         print(f"Exception in edit_project: {str(e)}")
         return f"Error: {str(e)}", 500
+
+@app.route('/user-management')
+def user_management():
+    if 'user' not in session:
+        print("No user in session, redirecting to login")
+        return redirect(url_for('login'))
+    
+    # Check if user has admin permissions
+    if session['user'].get('role') != 'admin':
+        print("User is not admin, showing error")
+        return render_template('error.html', message="You don't have permission to access this page")
+    
+    try:
+        print("Attempting to fetch users from backend...")
+        # Fetch users from backend
+        response = requests.get(f'{BACKEND_URL}/users')
+        print(f"Users response status: {response.status_code}")
+        print(f"Users response content: {response.text}")
+        
+        if response.status_code == 200:
+            users = response.json()
+            print(f"Successfully fetched users: {users}")
+            
+            # Fetch roles from backend
+            print("Attempting to fetch roles from backend...")
+            roles_response = requests.get(f'{BACKEND_URL}/roles')
+            print(f"Roles response status: {roles_response.status_code}")
+            print(f"Roles response content: {roles_response.text}")
+            
+            roles = roles_response.json() if roles_response.status_code == 200 else []
+            print(f"Roles data: {roles}")
+            
+            return render_template('user_management.html', users=users, roles=roles)
+        else:
+            error_message = response.json().get('error', 'Failed to fetch users')
+            print(f"Error fetching users: {error_message}")
+            return render_template('user_management.html', error=error_message)
+    except Exception as e:
+        print(f"Error in user management: {str(e)}")
+        return render_template('user_management.html', error="An error occurred while fetching users")
+
+@app.route('/update-user-role/<int:user_id>', methods=['POST'])
+def update_user_role(user_id):
+    if 'user' not in session:
+        return redirect(url_for('login'))
+    
+    # Check if user has admin permissions
+    if session['user'].get('role') != 'admin':
+        return render_template('error.html', message="You don't have permission to perform this action")
+    
+    try:
+        new_role = request.form.get('role')
+        response = requests.put(
+            f'{BACKEND_URL}/users/{user_id}/role',
+            json={'role': new_role}
+        )
+        
+        if response.status_code == 200:
+            return redirect(url_for('user_management', success="User role updated successfully"))
+        else:
+            error_message = response.json().get('error', 'Failed to update user role')
+            return redirect(url_for('user_management', error=error_message))
+    except Exception as e:
+        print(f"Error updating user role: {str(e)}")
+        return redirect(url_for('user_management', error="An error occurred while updating the user role"))
 
 if __name__ == '__main__':
     app.run(port=5000, debug=True)
