@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Day View - {{ date }}</title>
+    <style>
+        :root {
+            /* Primary Colors - Based on logo */
+            --primary-blue: #0052CC;
+            --primary-dark: #003D99;
+            --primary-light: #E6F0FF;
+            
+            /* Neutral Colors */
+            --white: #FFFFFF;
+            --off-white: #F8F9FA;
+            --light-gray: #E9ECEF;
+            --medium-gray: #6C757D;
+            --dark-gray: #343A40;
+        }
+
+        body {
+            background-color: var(--off-white);
+            color: var(--dark-gray);
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .logo {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .logo img {
+            height: 100px;
+            width: auto;
+        }
+
+        .day-header {
+            background-color: var(--white);
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .day-header h1 {
+            color: var(--primary-blue);
+            margin: 0;
+        }
+
+        .projects-list {
+            background-color: var(--white);
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .project-card {
+            border: 1px solid var(--light-gray);
+            border-radius: 4px;
+            padding: 15px;
+            margin-bottom: 15px;
+            transition: background-color 0.2s;
+        }
+
+        .project-card h3 {
+            margin: 0;
+            padding: 10px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            border-radius: 4px;
+        }
+
+        .project-card h3:hover {
+            background-color: var(--primary-light);
+        }
+
+        .project-details {
+            display: none;
+            padding: 15px;
+            background-color: var(--off-white);
+            border-radius: 4px;
+            margin-top: 10px;
+        }
+
+        .back-button {
+            display: inline-block;
+            padding: 8px 16px;
+            background-color: var(--medium-gray);
+            color: var(--white);
+            text-decoration: none;
+            border-radius: 4px;
+            margin-bottom: 20px;
+        }
+
+        .back-button:hover {
+            background-color: var(--dark-gray);
+        }
+
+        .no-projects {
+            text-align: center;
+            padding: 20px;
+            color: var(--medium-gray);
+        }
+
+        .button-container {
+            margin-top: 20px;
+            text-align: right;
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+        }
+
+        .edit-button {
+            display: inline-block;
+            padding: 8px 16px;
+            background-color: var(--primary-blue);
+            color: var(--white);
+            text-decoration: none;
+            border-radius: 4px;
+            margin-top: 10px;
+        }
+
+        .edit-button:hover {
+            background-color: var(--primary-dark);
+        }
+
+        /* Add styles for the delete button */
+        .delete-button {
+            display: inline-block;
+            padding: 8px 16px;
+            background-color: #dc3545;
+            color: var(--white);
+            text-decoration: none;
+            border: none;
+            border-radius: 4px;
+            margin-left: 10px;
+            cursor: pointer;
+        }
+
+        .delete-button:hover {
+            background-color: #c82333;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <a href="/calendar/{{ region }}" class="back-button">Back to Calendar</a>
+        
+        <div class="logo">
+            <img src="/static/images/savage_logo.png" alt="Savage Scheduler Logo">
+        </div>
+
+        <div class="day-header">
+            <h1>Projects for {{ date }}</h1>
+            <p>{{ region|title }} Region</p>
+        </div>
+
+        <div class="projects-list">
+            {% if projects %}
+                {% for project in projects %}
+                    <div class="project-card">
+                        <h3 onclick="toggleDetails('project-{{ loop.index }}')">{{ project.customer_name }}</h3>
+                        <div id="project-{{ loop.index }}" class="project-details">
+                            <p><strong>PO:</strong> {{ project.po }}</p>
+                            <p><strong>Phone:</strong> {{ project.customer_phone }}</p>
+                            <p><strong>Email:</strong> {{ project.customer_email or 'N/A' }}</p>
+                            <p><strong>Address:</strong> {{ project.address }}</p>
+                            <p><strong>City:</strong> {{ project.city }}</p>
+                            <p><strong>Subdivision:</strong> {{ project.subdivision or 'N/A' }}</p>
+                            <p><strong>Lot Number:</strong> {{ project.lot_number or 'N/A' }}</p>
+                            <p><strong>Square Footage:</strong> {{ project.square_footage }}</p>
+                            <p><strong>Job Cost Type:</strong> {{ project.job_cost_type|join(', ') }}</p>
+                            <p><strong>Work Type:</strong> {{ project.work_type|join(', ') }}</p>
+                            <p><strong>Notes:</strong> {{ project.notes or 'N/A' }}</p>
+                            
+                            <div class="button-container">
+                                <a href="/edit-project/{{ region }}/{{ project.id }}" class="edit-button">Edit Project</a>
+                                <button onclick="deleteProject('{{ project.id }}')" class="delete-button">Delete Project</button>
+                            </div>
+                        </div>
+                    </div>
+                {% endfor %}
+            {% else %}
+                <div class="no-projects">
+                    <p>No projects scheduled for this day.</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <script>
+        function toggleDetails(id) {
+            const details = document.getElementById(id);
+            if (details.style.display === 'none' || !details.style.display) {
+                details.style.display = 'block';
+            } else {
+                details.style.display = 'none';
+            }
+        }
+
+        async function deleteProject(projectId) {
+            if (!confirm('Are you sure you want to delete this project? This action cannot be undone.')) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`http://localhost:5001/api/projects/${projectId}`, {
+                    method: 'DELETE',
+                });
+
+                if (response.ok) {
+                    alert('Project deleted successfully');
+                    // Refresh the page to show updated project list
+                    window.location.reload();
+                } else {
+                    alert('Failed to delete project. Please try again.');
+                }
+            } catch (error) {
+                console.error('Error deleting project:', error);
+                alert('An error occurred while deleting the project. Please try again.');
+            }
+        }
+    </script>
+</body>
+</html>

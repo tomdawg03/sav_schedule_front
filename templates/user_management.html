@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>User Management - Savage Scheduler</title>
+    <style>
+        :root {
+            --primary-blue: #0052CC;
+            --primary-dark: #003D99;
+            --primary-light: #E6F0FF;
+            --white: #FFFFFF;
+            --off-white: #F8F9FA;
+            --light-gray: #E9ECEF;
+            --medium-gray: #6C757D;
+            --dark-gray: #343A40;
+            --success: #28A745;
+            --error: #DC3545;
+        }
+
+        body {
+            background-color: var(--off-white);
+            color: var(--dark-gray);
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+        }
+
+        .back-button {
+            padding: 8px 16px;
+            background-color: var(--medium-gray);
+            color: var(--white);
+            text-decoration: none;
+            border-radius: 4px;
+            transition: background-color 0.2s;
+        }
+
+        .back-button:hover {
+            background-color: var(--dark-gray);
+        }
+
+        .user-table {
+            width: 100%;
+            border-collapse: collapse;
+            background-color: var(--white);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .user-table th,
+        .user-table td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid var(--light-gray);
+        }
+
+        .user-table th {
+            background-color: var(--primary-light);
+            color: var(--primary-blue);
+            font-weight: bold;
+        }
+
+        .user-table tr:hover {
+            background-color: var(--off-white);
+        }
+
+        .role-select {
+            padding: 6px;
+            border: 1px solid var(--light-gray);
+            border-radius: 4px;
+            width: 150px;
+        }
+
+        .save-button {
+            padding: 6px 12px;
+            background-color: var(--success);
+            color: var(--white);
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        .save-button:hover {
+            background-color: #218838;
+        }
+
+        .error-message {
+            color: var(--error);
+            margin: 10px 0;
+            padding: 10px;
+            background-color: #fff3f3;
+            border: 1px solid var(--error);
+            border-radius: 4px;
+        }
+
+        .success-message {
+            color: var(--success);
+            margin: 10px 0;
+            padding: 10px;
+            background-color: #f3fff3;
+            border: 1px solid var(--success);
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>User Management</h1>
+            <a href="/dashboard" class="back-button">Back to Dashboard</a>
+        </div>
+
+        {% if error %}
+        <div class="error-message">{{ error }}</div>
+        {% endif %}
+
+        {% if success %}
+        <div class="success-message">{{ success }}</div>
+        {% endif %}
+
+        <table class="user-table">
+            <thead>
+                <tr>
+                    <th>Username</th>
+                    <th>Email</th>
+                    <th>Current Role</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% if users and users|length > 0 %}
+                    {% for user in users %}
+                    <tr>
+                        <td>{{ user.username }}</td>
+                        <td>{{ user.email }}</td>
+                        <td>{{ user.role if user.role else 'No role' }}</td>
+                        <td>
+                            <form action="{{ url_for('update_user_role', user_id=user.id) }}" method="POST" class="d-inline">
+                                <select name="role" class="form-control d-inline w-auto">
+                                    {% for role in roles %}
+                                    <option value="{{ role.name }}" {% if role.name == user.role %}selected{% endif %}>
+                                        {{ role.name }}
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                                <button type="submit" class="btn btn-primary btn-sm">Save</button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                {% else %}
+                    <tr>
+                        <td colspan="4" class="text-center">
+                            <p class="my-3">No other users found. You are currently the only user in the system.</p>
+                            <p>To add more users, they need to sign up through the registration page.</p>
+                        </td>
+                    </tr>
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
+</body>
+</html> 

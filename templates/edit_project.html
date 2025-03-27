@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Edit Project</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input[type="text"],
+        input[type="email"],
+        input[type="tel"],
+        input[type="date"],
+        input[type="number"] {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        .checkbox-group {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 15px;
+            padding: 15px;
+            border: 1px solid #e0e0e0;
+            border-radius: 4px;
+            margin-top: 5px;
+        }
+        .checkbox-option {
+            display: flex;
+            align-items: center;
+            padding: 8px;
+            transition: background-color 0.2s;
+            border-radius: 4px;
+        }
+        .checkbox-option:hover {
+            background-color: #f5f5f5;
+        }
+        .checkbox-option input[type="checkbox"] {
+            margin-right: 8px;
+            transform: scale(1.2);
+        }
+        .checkbox-option label {
+            margin: 0;
+            font-weight: normal;
+            cursor: pointer;
+        }
+        button[type="submit"] {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        button[type="submit"]:hover {
+            background-color: #45a049;
+        }
+        @media (max-width: 768px) {
+            .checkbox-group {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Customer search styles */
+        .search-container {
+            position: relative;
+            margin-bottom: 20px;
+        }
+
+        .search-results {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            max-height: 200px;
+            overflow-y: auto;
+            z-index: 1000;
+            display: none;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .search-result-item {
+            padding: 8px 12px;
+            cursor: pointer;
+            border-bottom: 1px solid #ddd;
+        }
+
+        .search-result-item:hover {
+            background-color: #f5f5f5;
+        }
+
+        .search-result-item:last-child {
+            border-bottom: none;
+        }
+    </style>
+</head>
+<body>
+    <h1>Edit Project</h1>
+    <form method="POST">
+        <div class="form-group search-container">
+            <label>Search Customer:</label>
+            <input type="text" id="customerSearch" placeholder="Start typing to search customers..." oninput="searchCustomers(this.value)">
+            <div id="searchResults" class="search-results"></div>
+        </div>
+
+        <div class="form-group">
+            <label for="date">Date:</label>
+            <input type="date" id="date" name="date" value="{{ project.date }}" required>
+        </div>
+
+        <div class="form-group">
+            <label for="po">PO Number:</label>
+            <input type="text" id="po" name="po" value="{{ project.po }}">
+        </div>
+
+        <div class="form-group">
+            <label for="customer_name">Customer Name:</label>
+            <input type="text" id="customer_name" name="customer_name" value="{{ project.customer_name }}" required>
+        </div>
+
+        <div class="form-group">
+            <label for="customer_phone">Phone Number:</label>
+            <input type="tel" id="customer_phone" name="customer_phone" value="{{ project.customer_phone }}">
+        </div>
+
+        <div class="form-group">
+            <label for="customer_email">Email:</label>
+            <input type="email" id="customer_email" name="customer_email" value="{{ project.customer_email }}">
+        </div>
+
+        <div class="form-group">
+            <label for="address">Address:</label>
+            <input type="text" id="address" name="address" value="{{ project.address }}" required>
+        </div>
+
+        <div class="form-group">
+            <label for="city">City:</label>
+            <input type="text" id="city" name="city" value="{{ project.city }}" required>
+        </div>
+
+        <div class="form-group">
+            <label for="subdivision">Subdivision:</label>
+            <input type="text" id="subdivision" name="subdivision" value="{{ project.subdivision }}">
+        </div>
+
+        <div class="form-group">
+            <label for="lot_number">Lot Number:</label>
+            <input type="text" id="lot_number" name="lot_number" value="{{ project.lot_number }}">
+        </div>
+
+        <div class="form-group">
+            <label for="square_footage">Square Footage:</label>
+            <input type="number" id="square_footage" name="square_footage" value="{{ project.square_footage }}">
+        </div>
+
+        <div class="form-group">
+            <label>Job Cost Type:</label>
+            <div class="checkbox-group">
+                {% for type in job_cost_types %}
+                <div class="checkbox-option">
+                    <input type="checkbox" id="job_cost_type_{{ type.value }}" name="job_cost_type" value="{{ type.value }}"
+                        {% if type.label in project.job_cost_type %}checked{% endif %}>
+                    <label for="job_cost_type_{{ type.value }}">{{ type.label }}</label>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label>Work Type:</label>
+            <div class="checkbox-group">
+                {% for type in work_types %}
+                <div class="checkbox-option">
+                    <input type="checkbox" id="work_type_{{ type.value }}" name="work_type" value="{{ type.value }}"
+                        {% if type.label in project.work_type %}checked{% endif %}>
+                    <label for="work_type_{{ type.value }}">{{ type.label }}</label>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label for="notes">Additional Notes:</label>
+            <textarea id="notes" name="notes" rows="4" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; box-sizing: border-box;">{{ project.notes }}</textarea>
+        </div>
+
+        <button type="submit">Update Project</button>
+    </form>
+
+    <script>
+        let searchTimeout;
+
+        function searchCustomers(query) {
+            const resultsDiv = document.getElementById('searchResults');
+            if (!query) {
+                resultsDiv.style.display = 'none';
+                return;
+            }
+
+            // Clear previous timeout
+            if (searchTimeout) {
+                clearTimeout(searchTimeout);
+            }
+
+            // Set new timeout to prevent too many API calls
+            searchTimeout = setTimeout(() => {
+                fetch(`http://localhost:5001/search-customers?q=${encodeURIComponent(query)}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.length > 0) {
+                            resultsDiv.innerHTML = data
+                                .map(customer => `
+                                    <div class="search-result-item" onclick="selectCustomer(${JSON.stringify(customer).replace(/"/g, '&quot;')})">
+                                        ${customer.name} - ${customer.phone}
+                                    </div>
+                                `)
+                                .join('');
+                            resultsDiv.style.display = 'block';
+                        } else {
+                            resultsDiv.innerHTML = '<div class="search-result-item">No customers found</div>';
+                            resultsDiv.style.display = 'block';
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error searching customers:', error);
+                        resultsDiv.innerHTML = '<div class="search-result-item">Error searching customers</div>';
+                        resultsDiv.style.display = 'block';
+                    });
+            }, 300); // Wait 300ms after user stops typing before making API call
+        }
+
+        function selectCustomer(customer) {
+            document.getElementById('customer_name').value = customer.name;
+            document.getElementById('customer_phone').value = customer.phone;
+            document.getElementById('customer_email').value = customer.email || '';
+            document.getElementById('searchResults').style.display = 'none';
+            document.getElementById('customerSearch').value = '';
+        }
+
+        // Close search results when clicking outside
+        document.addEventListener('click', function(event) {
+            const searchResults = document.getElementById('searchResults');
+            const searchInput = document.getElementById('customerSearch');
+            if (!searchResults.contains(event.target) && event.target !== searchInput) {
+                searchResults.style.display = 'none';
+            }
+        });
+    </script>
+</body>
+</html>

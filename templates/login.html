@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Login - Savage Scheduler</title>
+    <style>
+        :root {
+            /* Primary Colors - Based on logo */
+            --primary-blue: #0052CC;     /* Main blue color */
+            --primary-dark: #003D99;     /* Darker blue for hover states */
+            --primary-light: #E6F0FF;    /* Light blue for backgrounds */
+            
+            /* Neutral Colors */
+            --white: #FFFFFF;            /* Pure white */
+            --off-white: #F8F9FA;        /* Background color */
+            --light-gray: #E9ECEF;       /* Border colors */
+            --medium-gray: #6C757D;      /* Secondary text */
+            --dark-gray: #343A40;        /* Primary text */
+            
+            /* Feedback Colors */
+            --success: #28A745;          /* Success messages */
+            --error: #DC3545;            /* Error messages */
+        }
+
+        body {
+            background-color: var(--off-white);
+            color: var(--dark-gray);
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .logo {
+            margin-bottom: 30px;
+            text-align: center;
+        }
+
+        .logo img {
+            height: 100px;
+            width: auto;
+        }
+
+        .login-container {
+            background-color: var(--white);
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            max-width: 400px;
+        }
+
+        h2 {
+            color: var(--primary-blue);
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            color: var(--dark-gray);
+        }
+
+        input {
+            width: 100%;
+            padding: 12px;
+            margin: 8px 0;
+            border: 1px solid var(--light-gray);
+            border-radius: 4px;
+            box-sizing: border-box;
+            font-size: 16px;
+        }
+
+        input:focus {
+            outline: none;
+            border-color: var(--primary-blue);
+            box-shadow: 0 0 0 2px var(--primary-light);
+        }
+
+        button {
+            width: 100%;
+            padding: 12px;
+            background-color: var(--primary-blue);
+            color: var(--white);
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            margin-top: 20px;
+        }
+
+        button:hover {
+            background-color: var(--primary-dark);
+        }
+
+        .error-message {
+            color: var(--error);
+            margin: 10px 0;
+            text-align: center;
+            padding: 10px;
+            background-color: #fff3f3;
+            border: 1px solid var(--error);
+            border-radius: 4px;
+        }
+
+        .signup-link {
+            text-align: center;
+            margin-top: 15px;
+        }
+
+        .signup-link a {
+            color: var(--primary-blue);
+            text-decoration: none;
+        }
+
+        .signup-link a:hover {
+            text-decoration: underline;
+        }
+
+        /* High contrast adjustments for outdoor visibility */
+        @media (max-width: 768px) {
+            body {
+                background-color: var(--white);
+            }
+            
+            .login-container {
+                box-shadow: none;
+                padding: 20px;
+            }
+            
+            input {
+                background-color: var(--off-white);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="logo">
+        <img src="/static/images/savage_logo.png" alt="Savage Scheduler Logo">
+    </div>
+    <div class="login-container">
+        <h2>Login</h2>
+        {% if error %}
+        <div class="error-message">{{ error }}</div>
+        {% endif %}
+        <form action="/login" method="POST">
+            <div class="form-group">
+                <label for="username">Username:</label>
+                <input type="text" id="username" name="username" required>
+            </div>
+            <div class="form-group">
+                <label for="password">Password:</label>
+                <input type="password" id="password" name="password" required>
+            </div>
+            <button type="submit">Login</button>
+        </form>
+        <div class="signup-link">
+            <p>Don't have an account? <a href="/signup">Sign up here</a></p>
+        </div>
+    </div>
+</body>
+</html>
