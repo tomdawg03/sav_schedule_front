@@ -369,75 +369,50 @@ def edit_project(region, project_id):
 @app.route('/user-management')
 def user_management():
     if 'user' not in session:
-        print("No user in session, redirecting to login")
         return redirect(url_for('login'))
     
-    # Check if user is admin
-    print(f"Current user session data: {session['user']}")
+    # Check if user has admin permissions
     if session['user'].get('role') != 'admin':
-        print(f"User role {session['user'].get('role')} is not admin")
         return render_template('error.html', message="You don't have permission to manage users")
     
     try:
-        # Get users from backend
-        print(f"Making request to {BACKEND_URL}/user-management/users")
-        response = requests.get(
-            f'{BACKEND_URL}/user-management/users',
-            cookies=request.cookies  # Forward cookies to maintain session
-        )
-        
-        print(f"Backend response status: {response.status_code}")
-        print(f"Backend response headers: {response.headers}")
-        print(f"Backend response content: {response.text}")
-        
+        # Fetch users from backend
+        response = requests.get(f'{BACKEND_URL}/user-management/users')
         if response.status_code == 200:
             users = response.json()
-            print(f"Successfully fetched users: {users}")
-            
-            # Get available roles
-            print("Fetching roles...")
-            roles_response = requests.get(
-                f'{BACKEND_URL}/user-management/roles',
-                cookies=request.cookies  # Forward cookies to maintain session
-            )
-            
-            print(f"Roles response status: {roles_response.status_code}")
-            print(f"Roles response content: {roles_response.text}")
-            
-            if roles_response.status_code == 200:
-                roles = roles_response.json()
-                print(f"Successfully fetched roles: {roles}")
-                return render_template('user_management.html', users=users, roles=roles)
-            else:
-                print(f"Error fetching roles: {roles_response.text}")
-                return render_template('user_management.html', error="Error fetching roles", users=[])
         else:
+            users = []
             print(f"Error fetching users: {response.text}")
-            return render_template('user_management.html', error="Error fetching users", users=[])
             
-    except requests.exceptions.ConnectionError as e:
-        print(f"Connection error: {str(e)}")
-        return render_template('user_management.html', error="Could not connect to the server", users=[])
+        # Fetch roles from backend
+        roles_response = requests.get(f'{BACKEND_URL}/user-management/roles')
+        if roles_response.status_code == 200:
+            roles = roles_response.json()
+        else:
+            roles = []
+            print(f"Error fetching roles: {roles_response.text}")
+            
+        return render_template('user_management.html', users=users, roles=roles)
+        
+    except requests.exceptions.ConnectionError:
+        return render_template('user_management.html', error="Could not connect to the server")
     except Exception as e:
         print(f"Error in user management: {str(e)}")
-        return render_template('user_management.html', error=f"An unexpected error occurred: {str(e)}", users=[])
+        return render_template('user_management.html', error="An error occurred while fetching users")
 
 @app.route('/update-user-role/<int:user_id>', methods=['POST'])
 def update_user_role(user_id):
     if 'user' not in session:
         return redirect(url_for('login'))
     
-    # Check if user is admin
+    # Check if user has admin permissions
     if session['user'].get('role') != 'admin':
-        return render_template('error.html', message="You don't have permission to manage users")
+        return render_template('error.html', message="You don't have permission to update user roles")
     
     try:
         new_role = request.form.get('role')
-        if not new_role:
-            return redirect(url_for('user_management', error="Role is required"))
-        
         response = requests.put(
-            f'{BACKEND_URL}/user-management/users/{user_id}/role',
+            f'{BACKEND_URL}/user-management/users/{user_id}',
             json={'role': new_role}
         )
         
@@ -449,7 +424,7 @@ def update_user_role(user_id):
             
     except Exception as e:
         print(f"Error updating user role: {str(e)}")
-        return redirect(url_for('user_management', error=f"An unexpected error occurred: {str(e)}"))
+        return redirect(url_for('user_management', error="An error occurred while updating the user role"))
 
 if __name__ == '__main__':
     app.run(port=5000, debug=True)
