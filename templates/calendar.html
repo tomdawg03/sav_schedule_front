@@ -97,9 +97,36 @@
         }
 
         .fc-event {
-            background-color: var(--primary-blue);
-            border-color: var(--primary-dark);
-            cursor: pointer;
+            background-color: transparent !important;
+            border: none !important;
+            margin-bottom: 2px !important;
+        }
+
+        .fc-event-title {
+            padding: 2px 4px !important;
+            margin-bottom: 2px !important;
+            background-color: var(--primary-light) !important;
+            border-radius: 4px !important;
+            border: 1px solid var(--primary-blue) !important;
+        }
+
+        .fc-daygrid-event-harness {
+            margin-bottom: 0 !important;
+        }
+
+        /* Remove any extra borders or lines */
+        .fc-event-main {
+            padding: 0 !important;
+            border: none !important;
+        }
+
+        .fc-daygrid-day-events {
+            margin-bottom: 0 !important;
+        }
+
+        .fc-daygrid-event {
+            white-space: normal !important;
+            border: none !important;
         }
 
         /* High contrast for outdoor visibility */
@@ -214,88 +241,72 @@
 
     <script>
         document.addEventListener('DOMContentLoaded', function() {
+            console.log("Calendar initialization starting...");
+            var projectsData = {{ projects_json|safe }};
+            console.log("Raw projects data:", projectsData);
+            console.log("Number of projects:", projectsData.length);
+            console.log("Project IDs:", projectsData.map(p => p.id));
+            
             var calendarEl = document.getElementById('calendar');
             var calendar = new FullCalendar.Calendar(calendarEl, {
                 initialView: 'dayGridMonth',
-                headerToolbar: {
-                    left: 'prev,next today',
-                    center: 'title',
-                    right: 'dayGridMonth,timeGridWeek,timeGridDay'
-                },
                 height: 'auto',
-                selectable: true,
-                editable: false,
-                events: function(fetchInfo, successCallback, failureCallback) {
-                    console.log('Fetching events for region:', '{{ region }}');
-                    fetch(`http://localhost:5001/api/projects/{{ region }}`)
-                        .then(response => {
-                            console.log('Response status:', response.status);
-                            return response.json();
-                        })
-                        .then(data => {
-                            console.log('Received projects:', data);
-                            const events = data.map(project => ({
-                                title: project.customer_name,
-                                start: project.date,
-                                allDay: true,
-                                extendedProps: {
-                                    ...project
-                                }
-                            }));
-                            console.log('Mapped events:', events);
-                            successCallback(events);
-                        })
-                        .catch(error => {
-                            console.error('Error fetching events:', error);
-                            failureCallback(error);
-                        });
+                events: projectsData.map(function(project) {
+                    console.log("Creating event for project:", project.id);
+                    return {
+                        id: project.id,
+                        title: project.customer_name || 'Unknown',
+                        start: project.date,
+                        backgroundColor: 'var(--light-blue)',
+                        textColor: 'var(--dark-gray)',
+                        borderColor: 'var(--primary-blue)',
+                        display: 'block',
+                        extendedProps: {
+                            projectId: project.id,
+                            customerId: project.customer_id,
+                            customerName: project.customer_name,
+                            address: project.address,
+                            workType: project.work_type,
+                            jobCostType: project.job_cost_type,
+                            po: project.po,
+                            notes: project.notes
+                        }
+                    };
+                }),
+                eventDisplay: 'block',
+                displayEventTime: false,
+                eventContent: function(arg) {
+                    // Get all events for this day
+                    var date = arg.event.start;
+                    var eventsOnDay = calendar.getEvents().filter(function(event) {
+                        var eventDate = event.start;
+                        return eventDate.getFullYear() === date.getFullYear() &&
+                               eventDate.getMonth() === date.getMonth() &&
+                               eventDate.getDate() === date.getDate();
+                    });
+
+                    // If this is the first event for this day, show all events
+                    if (eventsOnDay[0].id === arg.event.id) {
+                        var eventHtml = eventsOnDay.map(function(event) {
+                            return '<div style="font-size: 0.9em; padding: 4px; white-space: normal; color: var(--dark-gray); font-weight: bold;">' + event.title + '</div>';
+                        }).join('');
+                        return { html: eventHtml };
+                    }
+                    // Return empty for other events on the same day to avoid duplication
+                    return { html: '' };
                 },
                 dateClick: function(info) {
-                    // Add visual feedback
-                    const cell = info.dayEl;
-                    cell.style.backgroundColor = 'var(--primary-light)';
-                    
-                    // Prevent multiple clicks
-                    if (cell.getAttribute('data-processing')) {
-                        return;
-                    }
-                    
-                    // Set processing flag
-                    cell.setAttribute('data-processing', 'true');
-                    
-                    // Navigate to day view
-                    window.location.href = `/day-view/{{ region }}/${info.dateStr}`;
+                    window.location.href = '/day-view/{{ region }}/' + info.dateStr;
                 },
                 eventClick: function(info) {
-                    // Prevent the date click from firing when clicking an event
                     info.jsEvent.preventDefault();
-                    info.jsEvent.stopPropagation();
-                    // Show project details instead of redirecting
-                    showProjectDetails(info.event.extendedProps);
+                    window.location.href = '/day-view/{{ region }}/' + info.event.start.toISOString().split('T')[0];
                 }
             });
             
             calendar.render();
-
-            // Add click handling improvements
-            const fcDayGrid = document.querySelector('.fc-daygrid');
-            if (fcDayGrid) {
-                fcDayGrid.addEventListener('click', function(e) {
-                    // Find the closest date cell
-                    const dateCell = e.target.closest('.fc-daygrid-day');
-                    if (dateCell && !dateCell.getAttribute('data-processing')) {
-                        const date = dateCell.getAttribute('data-date');
-                        if (date) {
-                            // Add visual feedback
-                            dateCell.style.backgroundColor = 'var(--primary-light)';
-                            // Set processing flag
-                            dateCell.setAttribute('data-processing', 'true');
-                            // Navigate to day view
-                            window.location.href = `/day-view/{{ region }}/${date}`;
-                        }
-                    }
-                }, true);
-            }
+            console.log("Calendar rendered with events:", calendar.getEvents().length);
+            console.log("Event IDs after render:", calendar.getEvents().map(e => e.id));
         });
 
         function showProjectDetails(project) {

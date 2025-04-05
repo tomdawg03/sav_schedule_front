@@ -60,6 +60,7 @@
             box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
             border-radius: 8px;
             overflow: hidden;
+            margin-top: 20px;
         }
 
         .user-table th,
@@ -103,6 +104,25 @@
             border: 1px solid var(--success);
             border-radius: 4px;
         }
+
+        .btn-delete {
+            background-color: #dc3545;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        
+        .btn-delete:hover {
+            background-color: #c82333;
+        }
+        
+        .btn-delete:disabled {
+            background-color: #6c757d;
+            cursor: not-allowed;
+        }
     </style>
 </head>
 <body>
@@ -125,7 +145,7 @@
                 <tr>
                     <th>Username</th>
                     <th>Email</th>
-                    <th>Current Role</th>
+                    <th>Role</th>
                     <th>Actions</th>
                 </tr>
             </thead>
@@ -135,18 +155,20 @@
                     <tr>
                         <td>{{ user.username }}</td>
                         <td>{{ user.email }}</td>
-                        <td>{{ user.role if user.role else 'No role' }}</td>
                         <td>
-                            <form action="{{ url_for('update_user_role', user_id=user.id) }}" method="POST" style="display: inline;">
-                                <select name="role" class="form-select form-select-sm" style="width: auto; display: inline-block;">
-                                    {% for role in roles %}
-                                    <option value="{{ role.name }}" {% if role.name == user.role %}selected{% endif %}>
-                                        {{ role.name }}
-                                    </option>
-                                    {% endfor %}
-                                </select>
-                                <button type="submit" class="btn btn-primary btn-sm ms-2">Save</button>
-                            </form>
+                            <select class="role-select" data-user-id="{{ user.id }}" onchange="updateUserRole(this)">
+                                {% for role in roles %}
+                                <option value="{{ role.name }}" {% if user.role == role.name %}selected{% endif %}>
+                                    {{ role.display_name }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </td>
+                        <td>
+                            <button class="btn-delete" onclick="deleteUser({{ user.id }}, '{{ user.username }}')" 
+                                    {% if user.id == session.user.id %}disabled{% endif %}>
+                                Delete
+                            </button>
                         </td>
                     </tr>
                     {% endfor %}
@@ -162,5 +184,68 @@
         </table>
     </div>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        async function updateUserRole(selectElement) {
+            const userId = selectElement.dataset.userId;
+            const newRole = selectElement.value;
+            
+            try {
+                const response = await fetch(`/user/${userId}/role`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ role: newRole })
+                });
+                
+                if (response.ok) {
+                    alert('User role updated successfully');
+                    window.location.reload();  // Reload to show updated user list
+                } else {
+                    const result = await response.json();
+                    alert(result.error || 'Failed to update user role');
+                    selectElement.value = selectElement.getAttribute('data-original-value');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('An error occurred while updating user role');
+                selectElement.value = selectElement.getAttribute('data-original-value');
+            }
+        }
+
+        async function deleteUser(userId, username) {
+            if (!confirm(`Are you sure you want to delete user "${username}"?`)) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`/user/${userId}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                if (response.ok) {
+                    alert('User deleted successfully');
+                    window.location.reload();  // Reload to show updated user list
+                } else {
+                    const result = await response.json();
+                    alert(result.error || 'Failed to delete user');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('An error occurred while deleting user');
+            }
+        }
+
+        // Store original role values when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            const roleSelects = document.querySelectorAll('.role-select');
+            roleSelects.forEach(select => {
+                select.setAttribute('data-original-value', select.value);
+            });
+        });
+    </script>
 </body>
 </html> 

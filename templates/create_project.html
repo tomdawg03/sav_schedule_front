@@ -200,7 +200,7 @@
     </div>
     <div class="form-container">
         <h2>Create Project</h2>
-        <form id="createProjectForm" action="/create-project/{{ region }}" method="POST">
+        <form id="createProjectForm" onsubmit="handleSubmit(event)">
             <div class="form-group">
                 <label>Search Customer:</label>
                 <div class="search-container">
@@ -319,8 +319,88 @@
             }
         }
 
-        // New customer search functionality
-        let customers = [];
+        let isSubmitting = false;
+
+        async function handleSubmit(event) {
+            event.preventDefault();
+
+            if (isSubmitting) {
+                return;
+            }
+            isSubmitting = true;
+
+            const submitButton = document.querySelector('button[type="submit"]');
+            submitButton.disabled = true;
+
+            try {
+                const form = event.target;
+                const formData = new FormData(form);
+
+                // Get all selected work types
+                const workTypes = [];
+                form.querySelectorAll('input[name="work_type"]:checked').forEach(checkbox => {
+                    if (checkbox.value === 'other') {
+                        const otherValue = form.querySelector('#work_type_other').value;
+                        if (otherValue) workTypes.push(otherValue);
+                    } else {
+                        workTypes.push(checkbox.value);
+                    }
+                });
+
+                // Get all selected job cost types
+                const jobCostTypes = [];
+                form.querySelectorAll('input[name="job_cost_type"]:checked').forEach(checkbox => {
+                    if (checkbox.value === 'other') {
+                        const otherValue = form.querySelector('#job_cost_other').value;
+                        if (otherValue) jobCostTypes.push(otherValue);
+                    } else {
+                        jobCostTypes.push(checkbox.value);
+                    }
+                });
+
+                // Create project data object
+                const projectData = {
+                    customer_name: formData.get('customer_name'),
+                    customer_phone: formData.get('customer_phone'),
+                    customer_email: formData.get('customer_email'),
+                    date: formData.get('date'),
+                    po: formData.get('po'),
+                    address: formData.get('address'),
+                    city: formData.get('city'),
+                    subdivision: formData.get('subdivision'),
+                    lot_number: formData.get('lot_number'),
+                    square_footage: formData.get('square_footage'),
+                    notes: formData.get('notes'),
+                    work_type: workTypes,
+                    job_cost_type: jobCostTypes
+                };
+
+                const response = await fetch(`/create-project/{{ region }}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(projectData)
+                });
+
+                const result = await response.json();
+
+                if (response.ok) {
+                    // Project created successfully, redirect to confirmation page
+                    window.location.href = `/confirmation/{{ region }}`;
+                } else {
+                    throw new Error(result.error || 'Failed to create project');
+                }
+            } catch (error) {
+                console.error('Error creating project:', error);
+                alert('Failed to create project. Please try again.');
+            } finally {
+                submitButton.disabled = false;
+                isSubmitting = false;
+            }
+        }
+
+        // Customer search functionality
         let searchTimeout;
 
         function searchCustomers(query) {
@@ -330,14 +410,12 @@
                 return;
             }
 
-            // Clear previous timeout
             if (searchTimeout) {
                 clearTimeout(searchTimeout);
             }
 
-            // Set new timeout to prevent too many API calls
             searchTimeout = setTimeout(() => {
-                fetch(`http://localhost:5001/search-customers?q=${encodeURIComponent(query)}`)
+                fetch('/search-customers?q=' + encodeURIComponent(query))
                     .then(response => response.json())
                     .then(data => {
                         if (data.length > 0) {
@@ -359,7 +437,7 @@
                         resultsDiv.innerHTML = '<div class="search-result-item">Error searching customers</div>';
                         resultsDiv.style.display = 'block';
                     });
-            }, 300); // Wait 300ms after user stops typing before making API call
+            }, 300);
         }
 
         function selectCustomer(customer) {

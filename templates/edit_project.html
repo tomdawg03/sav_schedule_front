@@ -112,7 +112,7 @@
 </head>
 <body>
     <h1>Edit Project</h1>
-    <form method="POST">
+    <form method="POST" action="/edit-project/{{ region }}/{{ project.id }}">
         <div class="form-group search-container">
             <label>Search Customer:</label>
             <input type="text" id="customerSearch" placeholder="Start typing to search customers..." oninput="searchCustomers(this.value)">

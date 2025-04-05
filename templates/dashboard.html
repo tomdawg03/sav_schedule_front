@@ -26,8 +26,38 @@
             color: var(--dark-gray);
             font-family: Arial, sans-serif;
             margin: 0;
-            padding: 20px;
-            min-height: 100vh;
+            padding: 0;
+        }
+
+        .nav-bar {
+            background-color: var(--primary-blue);
+            padding: 1rem;
+            display: flex;
+            justify-content: flex-start;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .nav-button {
+            color: var(--white);
+            text-decoration: none;
+            padding: 0.5rem 1rem;
+            font-size: 1rem;
+            border: none;
+            background: none;
+            cursor: pointer;
+            transition: opacity 0.3s ease;
+        }
+
+        .nav-button:hover {
+            opacity: 0.8;
+        }
+
+        .nav-right {
+            margin-left: auto;
+            display: flex;
+            gap: 1rem;
         }
 
         .logo {
@@ -101,28 +131,6 @@
             background-color: var(--primary-dark);
         }
 
-        .header-buttons {
-            position: absolute;
-            top: 20px;
-            right: 20px;
-            display: flex;
-            gap: 10px;
-        }
-
-        .header-button {
-            padding: 8px 16px;
-            background-color: var(--medium-gray);
-            color: var(--white);
-            text-decoration: none;
-            border-radius: 4px;
-            transition: background-color 0.2s;
-            font-size: 14px;
-        }
-
-        .header-button:hover {
-            background-color: var(--dark-gray);
-        }
-
         .calendar-button {
             margin-top: 10px;
             background-color: var(--primary-dark);
@@ -136,13 +144,16 @@
     </style>
 </head>
 <body>
-    <div class="header-buttons">
-        {% if role == 'admin' %}
-        <a href="/user-management" class="header-button">Manage Users</a>
-        {% endif %}
-        <a href="/logout" class="header-button">Logout</a>
+    <div class="nav-bar">
+        <div class="nav-right">
+            {% if role == 'admin' %}
+            <a href="/user-management" class="nav-button">User Management</a>
+            <a href="/analytics" class="nav-button">Reports</a>
+            {% endif %}
+            <a href="/logout" class="nav-button">Logout</a>
+        </div>
     </div>
-    
+
     <div class="logo">
         <img src="/static/images/savage_logo.png" alt="Savage Scheduler Logo">
     </div>
@@ -156,17 +167,17 @@
             <div class="region-card">
                 <h2>Northern Region</h2>
                 {% if role in ['admin', 'project_manager'] %}
-                <a href="/create-project/northern" class="button">Create Project</a>
+                <a href="/create-project/North" class="button">Create Project</a>
                 {% endif %}
-                <a href="/calendar/northern" class="button calendar-button">View Calendar</a>
+                <a href="/calendar/North" class="button calendar-button">View Calendar</a>
             </div>
             
             <div class="region-card">
                 <h2>Southern Region</h2>
                 {% if role in ['admin', 'project_manager'] %}
-                <a href="/create-project/southern" class="button">Create Project</a>
+                <a href="/create-project/South" class="button">Create Project</a>
                 {% endif %}
-                <a href="/calendar/southern" class="button calendar-button">View Calendar</a>
+                <a href="/calendar/South" class="button calendar-button">View Calendar</a>
             </div>
         </div>
     </div>
