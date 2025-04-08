@@ -2,9 +2,32 @@ from flask import Flask, render_template, request, redirect, url_for, session, j
 from flask_login import login_required
 import requests
 import json
+import csv
 
 app = Flask(__name__)
 app.secret_key = 'your_secret_key'
+
+# Global cache for customer data
+CUSTOMER_CACHE = []
+def load_customer_cache():
+    global CUSTOMER_CACHE
+    try:
+        with open('../sav_schedule_back/data/cust_list.csv', 'r') as file:
+            reader = csv.reader(file)
+            headers = next(reader)
+            customer_idx = headers.index('Customer')
+            last_name_idx = headers.index('Last_Name')
+            phone_idx = headers.index('Phone')
+            email_idx = headers.index('Main_Email')
+            
+            CUSTOMER_CACHE = [{
+                'name': f"{row[customer_idx]} {row[last_name_idx]}".strip(),
+                'phone': row[phone_idx].strip(),
+                'email': row[email_idx].strip()
+            } for row in reader if len(row) >= max(customer_idx, last_name_idx, phone_idx, email_idx) + 1]
+    except Exception as e:
+        print(f"Error loading customer cache: {str(e)}")
+        CUSTOMER_CACHE = []
 
 BACKEND_URL = 'http://localhost:5001'
 
@@ -123,50 +146,16 @@ def login():
 def signup():
     if request.method == 'POST':
         try:
-            # Handle both JSON and form data
-            if request.is_json:
-                data = request.get_json()
-                username = data.get('username')
-                email = data.get('email')
-                password = data.get('password')
-            else:
-                username = request.form.get('username')
-                email = request.form.get('email')
-                password = request.form.get('password')
-                confirm_password = request.form.get('confirm_password')
-                
-                if not all([username, email, password, confirm_password]):
-                    return render_template('signup.html', error='All fields are required')
-                
-                if password != confirm_password:
-                    return render_template('signup.html', error='Passwords do not match')
-            
-            # Make request to backend
+            # Forward the request to the backend
             response = requests.post(
-                f"{BACKEND_URL}/auth/signup",
-                json={
-                    'username': username,
-                    'email': email,
-                    'password': password
-                }
+                f'{BACKEND_URL}/auth/signup',
+                json=request.get_json(),
+                headers={'Content-Type': 'application/json'}
             )
-            
-            if response.ok:
-                if request.is_json:
-                    return jsonify({'message': 'User created successfully'})
-                return render_template('login.html', success='Account created successfully! Please log in.')
-            else:
-                error_msg = response.json().get('error', 'Signup failed')
-                if request.is_json:
-                    return jsonify({'error': error_msg}), response.status_code
-                return render_template('signup.html', error=error_msg)
-                
+            return response.json(), response.status_code
         except Exception as e:
-            print(f"Error during signup: {str(e)}")
-            error_msg = 'An error occurred during signup'
-            if request.is_json:
-                return jsonify({'error': error_msg}), 500
-            return render_template('signup.html', error=error_msg)
+            print(f"Error in signup: {str(e)}")
+            return jsonify({'error': 'Error creating account'}), 500
     
     return render_template('signup.html')
 
@@ -208,6 +197,7 @@ def create_project(region):
                 # Store the project data in session for confirmation page
                 session['latest_project'] = data
                 session['latest_project']['region'] = region
+                session['latest_project']['is_update'] = False  # Indicate this is a new project
                 return jsonify({
                     'success': True,
                     'message': 'Project created successfully'
@@ -233,11 +223,14 @@ def confirmation(region):
         # First try to get project from session
         if 'latest_project' in session:
             project_data = session.pop('latest_project')  # Remove from session after use
+            is_update = project_data.pop('is_update', False)  # Get and remove is_update flag
+            message = "Project Updated Successfully!" if is_update else "Project Created Successfully!"
             return render_template('confirmation.html', 
                                 project=project_data, 
                                 region=region,
                                 username=session['user']['username'],
-                                role=session['user']['role'])
+                                role=session['user']['role'],
+                                message=message)
         
         # Fallback to API call if not in session
         print("Fetching latest project for confirmation...")
@@ -256,7 +249,8 @@ def confirmation(region):
                                 project=project_data, 
                                 region=region,
                                 username=session['user']['username'],
-                                role=session['user']['role'])
+                                role=session['user']['role'],
+                                message="Project Created Successfully!")
         else:
             print(f"Error fetching latest project: {response.text}")
             return render_template('error.html', 
@@ -503,7 +497,7 @@ def day_view(region, date):
         print(f"Error in day view route: {str(e)}")
         return redirect(url_for('calendar', region=region))
 
-@app.route('/edit-project/<region>/<project_id>', methods=['GET'])
+@app.route('/edit-project/<region>/<project_id>', methods=['GET', 'PUT'])
 def edit_project(region, project_id):
     if 'user' not in session:
         return redirect(url_for('login'))
@@ -514,6 +508,26 @@ def edit_project(region, project_id):
             return redirect(url_for('login'))
             
         headers = {'Authorization': f"Bearer {token}"}
+        
+        if request.method == 'PUT':
+            data = request.get_json()
+            response = requests.put(
+                f'{BACKEND_URL}/projects/{region}/{project_id}',
+                headers=headers,
+                json=data
+            )
+            
+            if response.ok:
+                # Store the project data and update flag in session for confirmation page
+                session['latest_project'] = data
+                session['latest_project']['region'] = region
+                session['latest_project']['is_update'] = True  # Indicate this is an update
+                return jsonify({'success': True, 'message': 'Project updated successfully'})
+            else:
+                error_message = response.json().get('error', 'Failed to update project')
+                return jsonify({'error': error_message}), response.status_code
+        
+        # GET request
         response = requests.get(
             f'{BACKEND_URL}/projects/{region}/{project_id}',
             headers=headers
@@ -533,5 +547,51 @@ def edit_project(region, project_id):
         print(f"Error in edit project route: {str(e)}")
         return render_template('error.html', message="An error occurred while loading the project")
 
+@app.route('/search-customers', methods=['GET'])
+def search_customers():
+    try:
+        query = request.args.get('q', '').lower()
+        if not query:
+            return jsonify([])
+            
+        # Search in memory cache
+        results = [
+            customer for customer in CUSTOMER_CACHE
+            if query in customer['name'].lower() or query in customer['phone'].lower()
+        ][:10]  # Limit to 10 results
+        
+        return jsonify(results)
+    except Exception as e:
+        print(f"Error searching customers: {str(e)}")
+        return jsonify([])
+
+@app.route('/user/<int:user_id>', methods=['PUT'])
+def update_user(user_id):
+    if 'user' not in session:
+        return jsonify({'error': 'Not logged in'}), 401
+    
+    if session['user'].get('role') != 'admin':
+        return jsonify({'error': 'Admin privileges required'}), 403
+    
+    try:
+        token = session['user'].get('token')
+        if not token:
+            return jsonify({'error': 'No token found'}), 401
+
+        headers = {'Authorization': f'Bearer {token}'}
+        data = request.get_json()
+        
+        response = requests.put(
+            f'{BACKEND_URL}/auth/user/{user_id}',
+            headers=headers,
+            json=data
+        )
+        
+        return jsonify(response.json()), response.status_code
+    except Exception as e:
+        print(f"Error updating user: {str(e)}")
+        return jsonify({'error': 'Failed to update user'}), 500
+
 if __name__ == '__main__':
+    load_customer_cache()  # Load customers when app starts
     app.run(port=5000, debug=True)

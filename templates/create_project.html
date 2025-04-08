@@ -101,6 +101,7 @@
             background-color: var(--off-white);
             border-radius: 4px;
             transition: background-color 0.2s;
+            flex-wrap: wrap;  /* Allow wrapping for the text input */
         }
 
         .checkbox-option:hover {
@@ -116,6 +117,7 @@
         .checkbox-option label {
             margin-bottom: 0;
             font-weight: normal;
+            flex: 1;  /* Take remaining space */
         }
 
         /* Responsive adjustments */
@@ -127,14 +129,26 @@
         }
 
         .other-input {
-            margin-top: 5px;
+            margin-top: 8px;
             display: none;
-            width: calc(100% - 40px);
-            padding: 5px;
+            width: 100%;
+            padding: 8px;
             border: 1px solid var(--light-gray);
             border-radius: 4px;
-            margin-left: 30px;
             background-color: var(--white);
+            margin-left: 28px;  /* Align with label text */
+            font-size: 14px;
+        }
+
+        .other-input:focus {
+            border-color: var(--primary-blue);
+            box-shadow: 0 0 0 2px var(--primary-light);
+            outline: none;
+        }
+
+        /* Show the input when parent is active */
+        .checkbox-option.active .other-input {
+            display: block;
         }
 
         button {
@@ -192,14 +206,45 @@
         .search-result-item:last-child {
             border-bottom: none;
         }
+
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.9);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+        }
+
+        .loading-spinner {
+            border: 4px solid var(--light-gray);
+            border-top: 4px solid var(--primary-blue);
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
     </style>
 </head>
 <body>
+    <div id="loadingOverlay" class="loading-overlay">
+        <div class="loading-spinner"></div>
+    </div>
+
     <div class="logo">
-        <img src="/static/images/savage_logo.png" alt="Savage Scheduler Logo">
+        <img src="/static/images/savage_logo.png" alt="Savage Scheduler Logo" onload="document.getElementById('loadingOverlay').style.display = 'none';">
     </div>
     <div class="form-container">
-        <h2>Create Project</h2>
+        <h2>{% if edit_mode %}Edit{% else %}Create{% endif %} Project</h2>
         <form id="createProjectForm" onsubmit="handleSubmit(event)">
             <div class="form-group">
                 <label>Search Customer:</label>
@@ -211,109 +256,114 @@
 
             <div class="form-group">
                 <label>Customer Name:</label>
-                <input type="text" name="customer_name" required>
+                <input type="text" name="customer_name" value="{{ project.customer_name if project else '' }}" required>
             </div>
 
             <div class="form-group">
                 <label>Phone:</label>
-                <input type="tel" name="customer_phone" required>
+                <input type="tel" name="customer_phone" value="{{ project.customer_phone if project else '' }}" required>
             </div>
 
             <div class="form-group">
                 <label>Email:</label>
-                <input type="email" name="customer_email">
+                <input type="email" name="customer_email" value="{{ project.customer_email if project else '' }}">
             </div>
 
             <div class="form-group">
                 <label>Date:</label>
-                <input type="date" name="date" required>
+                <input type="date" name="date" value="{{ project.date if project else '' }}" required>
             </div>
 
             <div class="form-group">
                 <label>PO:</label>
-                <input type="text" name="po" required>
+                <input type="text" name="po" value="{{ project.po if project else '' }}" required>
             </div>
 
             <div class="form-group">
                 <label>Address:</label>
-                <input type="text" name="address" required>
+                <input type="text" name="address" value="{{ project.address if project else '' }}" required>
             </div>
 
             <div class="form-group">
                 <label>City:</label>
-                <input type="text" name="city" required>
+                <input type="text" name="city" value="{{ project.city if project else '' }}" required>
             </div>
 
             <div class="form-group">
                 <label>Subdivision Name:</label>
-                <input type="text" name="subdivision">
+                <input type="text" name="subdivision" value="{{ project.subdivision if project else '' }}">
             </div>
 
             <div class="form-group">
                 <label>Lot Number:</label>
-                <input type="text" name="lot_number">
+                <input type="text" name="lot_number" value="{{ project.lot_number if project else '' }}">
             </div>
 
             <div class="form-group">
                 <label>Square Footage:</label>
-                <input type="number" name="square_footage" required>
+                <input type="number" name="square_footage" value="{{ project.square_footage if project else '' }}" required>
             </div>
 
             <div class="form-group">
                 <label>Job Cost Type (Select all that apply):</label>
                 <div class="checkbox-group">
-                    <label class="checkbox-option"><input type="checkbox" name="job_cost_type" value="standard"> Standard</label>
-                    <label class="checkbox-option"><input type="checkbox" name="job_cost_type" value="time_and_material"> Time and Material</label>
-                    <label class="checkbox-option"><input type="checkbox" name="job_cost_type" value="conveyer_rental"> Conveyer Truck Rental</label>
-                    <label class="checkbox-option"><input type="checkbox" name="job_cost_type" value="conveyer_rental_labor"> Conveyer Truck Rental and Labor</label>
-                    <label class="checkbox-option"><input type="checkbox" name="job_cost_type" value="conveyer_rental_multiple"> Conveyer Truck Rental and Multiple Laborers</label>
-                    <label class="checkbox-option"><input type="checkbox" name="job_cost_type" value="landscape"> Landscape</label>
-                    <label class="checkbox-option"><input type="checkbox" name="job_cost_type" value="dumptruck_rental"> Dumptruck Rental</label>
-                    <label class="checkbox-option">
-                        <input type="checkbox" name="job_cost_type" value="other" onchange="toggleOther('job_cost_other')"> Other
-                        <input type="text" name="job_cost_type_other" id="job_cost_other" class="other-input">
-                    </label>
+                    {% for type in job_cost_types if type != 'other' %}
+                    <div class="checkbox-option">
+                        <input type="checkbox" id="job_cost_type_{{ type }}" name="job_cost_type" value="{{ type }}"
+                               {% if project and type in project.job_cost_type %}checked{% endif %}>
+                        <label for="job_cost_type_{{ type }}">{{ type|replace('_', ' ')|title }}</label>
+                    </div>
+                    {% endfor %}
+                    <div class="checkbox-option">
+                        <input type="checkbox" id="job_cost_type_other" name="job_cost_type" value="other" onchange="toggleOther('job_cost_other', this)">
+                        <label for="job_cost_type_other">Other</label>
+                        <input type="text" id="job_cost_other" class="other-input" placeholder="Specify other job cost type">
+                    </div>
                 </div>
             </div>
 
             <div class="form-group">
                 <label>Work Type (Select all that apply):</label>
                 <div class="checkbox-group">
-                    <label class="checkbox-option"><input type="checkbox" name="work_type" value="basement"> Basement</label>
-                    <label class="checkbox-option"><input type="checkbox" name="work_type" value="garage"> Garage</label>
-                    <label class="checkbox-option"><input type="checkbox" name="work_type" value="slab_on"> Slab On</label>
-                    <label class="checkbox-option"><input type="checkbox" name="work_type" value="under_footing"> Under Footing Fill</label>
-                    <label class="checkbox-option"><input type="checkbox" name="work_type" value="plumber_spray"> Plumber Spray</label>
-                    <label class="checkbox-option"><input type="checkbox" name="work_type" value="footings"> Footings</label>
-                    <label class="checkbox-option"><input type="checkbox" name="work_type" value="crawl_space"> Crawl Space</label>
-                    <label class="checkbox-option"><input type="checkbox" name="work_type" value="heavy_blanket"> Heavy Blanket Removal/Replace $250</label>
-                    <label class="checkbox-option"><input type="checkbox" name="work_type" value="dry_blanket"> Dry Blanket Removal</label>
-                    <label class="checkbox-option"><input type="checkbox" name="work_type" value="exterior_gravel"> Exterior Gravel Dump</label>
-                    <label class="checkbox-option"><input type="checkbox" name="work_type" value="track_out"> Track Out Pad</label>
-                    <label class="checkbox-option">
-                        <input type="checkbox" name="work_type" value="other" onchange="toggleOther('work_type_other')"> Other
-                        <input type="text" name="work_type_other" id="work_type_other" class="other-input">
-                    </label>
+                    {% for type in work_types if type != 'other' %}
+                    <div class="checkbox-option">
+                        <input type="checkbox" id="work_type_{{ type }}" name="work_type" value="{{ type }}"
+                               {% if project and type in project.work_type %}checked{% endif %}>
+                        <label for="work_type_{{ type }}">{{ type|replace('_', ' ')|title }}</label>
+                    </div>
+                    {% endfor %}
+                    <div class="checkbox-option">
+                        <input type="checkbox" id="work_type_other" name="work_type" value="other" onchange="toggleOther('work_type_other', this)">
+                        <label for="work_type_other">Other</label>
+                        <input type="text" id="work_type_other" class="other-input" placeholder="Specify other work type">
+                    </div>
                 </div>
             </div>
 
             <div class="form-group">
                 <label>Additional Notes:</label>
-                <textarea name="notes" rows="4"></textarea>
+                <textarea name="notes" rows="4">{{ project.notes if project else '' }}</textarea>
             </div>
 
-            <button type="submit">Create Project</button>
+            <button type="submit">{% if edit_mode %}Update{% else %}Create{% endif %} Project</button>
         </form>
     </div>
 
     <script>
-        function toggleOther(inputId) {
+        window.addEventListener('load', function() {
+            document.getElementById('loadingOverlay').style.display = 'none';
+        });
+
+        function toggleOther(inputId, checkboxElement) {
             const otherInput = document.getElementById(inputId);
-            const checkbox = event.target;
-            if (checkbox.checked) {
+            const checkboxOption = checkboxElement.closest('.checkbox-option');
+            
+            if (checkboxElement.checked) {
+                checkboxOption.classList.add('active');
                 otherInput.style.display = 'block';
                 otherInput.focus();
             } else {
+                checkboxOption.classList.remove('active');
                 otherInput.style.display = 'none';
                 otherInput.value = '';
             }
@@ -340,8 +390,10 @@
                 const workTypes = [];
                 form.querySelectorAll('input[name="work_type"]:checked').forEach(checkbox => {
                     if (checkbox.value === 'other') {
-                        const otherValue = form.querySelector('#work_type_other').value;
-                        if (otherValue) workTypes.push(otherValue);
+                        const otherValue = document.getElementById('work_type_other').value.trim();
+                        if (otherValue) {
+                            workTypes.push(`Other: ${otherValue}`);
+                        }
                     } else {
                         workTypes.push(checkbox.value);
                     }
@@ -351,12 +403,32 @@
                 const jobCostTypes = [];
                 form.querySelectorAll('input[name="job_cost_type"]:checked').forEach(checkbox => {
                     if (checkbox.value === 'other') {
-                        const otherValue = form.querySelector('#job_cost_other').value;
-                        if (otherValue) jobCostTypes.push(otherValue);
+                        const otherValue = document.getElementById('job_cost_other').value.trim();
+                        if (otherValue) {
+                            jobCostTypes.push(`Other: ${otherValue}`);
+                        }
                     } else {
                         jobCostTypes.push(checkbox.value);
                     }
                 });
+
+                // Validate that if "other" is checked, the text field is not empty
+                const workTypeOther = form.querySelector('#work_type_other');
+                const jobCostOther = form.querySelector('#job_cost_other');
+                
+                if (form.querySelector('#work_type_other').parentElement.classList.contains('active') && !workTypeOther.value.trim()) {
+                    alert('Please specify the other work type or uncheck the Other option');
+                    submitButton.disabled = false;
+                    isSubmitting = false;
+                    return;
+                }
+                
+                if (form.querySelector('#job_cost_other').parentElement.classList.contains('active') && !jobCostOther.value.trim()) {
+                    alert('Please specify the other job cost type or uncheck the Other option');
+                    submitButton.disabled = false;
+                    isSubmitting = false;
+                    return;
+                }
 
                 // Create project data object
                 const projectData = {
@@ -375,8 +447,14 @@
                     job_cost_type: jobCostTypes
                 };
 
-                const response = await fetch(`/create-project/{{ region }}`, {
-                    method: 'POST',
+                const isEditMode = {{ 'true' if edit_mode else 'false' }};
+                const url = isEditMode ? 
+                    `/edit-project/{{ region }}/{{ project.id if project else '' }}` :
+                    `/create-project/{{ region }}`;
+                const method = isEditMode ? 'PUT' : 'POST';
+
+                const response = await fetch(url, {
+                    method: method,
                     headers: {
                         'Content-Type': 'application/json'
                     },
@@ -386,14 +464,13 @@
                 const result = await response.json();
 
                 if (response.ok) {
-                    // Project created successfully, redirect to confirmation page
                     window.location.href = `/confirmation/{{ region }}`;
                 } else {
-                    throw new Error(result.error || 'Failed to create project');
+                    throw new Error(result.error || `Failed to ${isEditMode ? 'update' : 'create'} project`);
                 }
             } catch (error) {
-                console.error('Error creating project:', error);
-                alert('Failed to create project. Please try again.');
+                console.error(`Error ${isEditMode ? 'updating' : 'creating'} project:`, error);
+                alert(`Failed to ${isEditMode ? 'update' : 'create'} project. Please try again.`);
             } finally {
                 submitButton.disabled = false;
                 isSubmitting = false;
